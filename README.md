@@ -4,7 +4,40 @@ EngageFlow is an internal GovTech Malaysia engagement tracker for monitoring the
 
 The project is planned as a Laravel modular monolith with an Inertia.js + React frontend, MYDS as the primary design system where practical, FontAwesome icons, MySQL, Docker Compose, automated tests, and GitHub Actions CI.
 
-## Current Status
+## Quick Start
+
+> **Host machine requirements:** Docker Desktop and Git only. PHP, Composer, and Node do not need to be installed locally.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/shahrilazwa/engageflow.git
+cd engageflow
+
+# 2. Copy the environment file
+cp .env.example .env
+
+# 3. Start the database first so the app container can connect
+docker compose up -d db
+
+# 4. Generate APP_KEY — this writes the key into .env on the host
+docker compose run --rm app php artisan key:generate
+
+# 5. Start all services (force-recreate app so it picks up the new APP_KEY)
+docker compose up -d --force-recreate app node
+
+# 6. Run database migrations
+docker compose exec app php artisan migrate
+
+# 7. Open the app
+# http://localhost:8000
+```
+
+> **Why the force-recreate step?**
+> `APP_KEY` is passed into the `app` container as an environment variable at startup.
+> If you generate the key after the container is already running, the container will not see the new value until it is recreated.
+> Running `docker compose up -d --force-recreate app` restarts only the app container with the updated key.
+
+
 
 Project planning is in progress. Implementation should follow `requirements.md`, `design.md`, and `tasks.md` once those files are added to the repository.
 
