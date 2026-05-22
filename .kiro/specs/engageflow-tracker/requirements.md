@@ -2,166 +2,215 @@
 
 ## Introduction
 
-EngageFlow is an internal web application for tracking team workstreams, tasks, and progress. It provides a structured, visual alternative to manual spreadsheet tracking. The primary v1 use case is the GovTech engagement team's ministry/agency onboarding workflow for MyGOV — but the core tracking model (owners, work items, workflow stages, follow-up actions, document links) is applicable to other team workflows.
+EngageFlow is a web application for tracking projects, tasks, actions, deadlines, and progress. It provides a structured, visual alternative to manual spreadsheet tracking and allows a user to manage multiple projects in one place.
+
+The core product model is **project-first and single-user-first**: a user creates one or more Projects, builds the Workflow for each Project, creates Tasks inside each Project, monitors progress, and tracks follow-up actions and document links. The first MVP is designed to work well for one user managing their own Projects. Collaboration through Project members can be added after the core single-user workflow is working.
+
+The app does not need to know which agency, ministry, company, or organisation a user belongs to. Project sharing, when introduced, is controlled by the Project_Owner through project membership.
+
+The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work, but the underlying model is generic: Project → Custom Project Workflow → Tasks → Workflow Stages / Actions / Documents / Progress. Different Projects may use different Workflows, such as GovTech libat urus, perolehan kerajaan, or GovTech Citizen Lab. Users build the stages that fit their Project instead of being forced to choose from a predefined template.
 
 ## Glossary
 
-- **Tracker**: The EngageFlow web application for tracking team workstreams and progress. In v1, configured for the GovTech engagement team's MyGOV onboarding workflow.
-- **Agency_Owner**: (v1 entity) A ministry or government agency that owns one or more tracked work items. In the generic model, this represents a stakeholder or owner organisation. The v1 implementation uses the GovTech/MyGOV context where Agency_Owner is a ministry or agency targeted for integration.
-- **Service**: (v1 entity) A tracked work item that progresses through a workflow. In v1, this represents a digital service owned by an Agency_Owner that GovTech wants to make available through MyGOV (e.g., "Pembayaran Saman" owned by PDRM).
-- **Workflow**: A multi-stage process that each Service goes through. In v1, this is a fixed 10-stage engagement and integration process from initial request to Go-Live.
-- **Stage**: A single step within the Workflow (e.g., "Surat Permohonan Onboard", "UAT", "Go-Live")
-- **Stage_Status**: The current state of a Stage for a given Service. Statuses for v1: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed
-- **Target_Completion**: The expected date by which a Service should reach its final workflow stage. If only the month is known, use the last day of that month as the target date.
-- **Progress_View**: The graphical representation of workstream progress and status for one or more Services
-- **Special_Project**: A tracked item that does not follow the standard Agency_Owner/Service hierarchy. For v1, tracked with: title, status, target date, follow-up actions, and document links (no multi-stage workflow)
-- **Follow_Up_Action**: A follow-up task associated with a Service or Special_Project, with a title, due date, status (Open, In_Progress, Done, Cancelled), and remarks
-- **Document_Link**: An external URL (typically Google Drive) associated with a Service, Stage, Special_Project, or Follow_Up_Action for reference
-- **User_Role**: The access level assigned to a user. For v1: Admin, Lead, Member
+- **Tracker**: The EngageFlow web application for tracking projects, tasks, progress, deadlines, action items, and related document links.
+- **User**: A person with an authenticated account in EngageFlow. A User can create multiple Projects and use the app alone.
+- **Project**: A workspace/container created by a User to group related Tasks under a custom Workflow. Examples: "GovTech Libat Urus", "Perolehan Kerajaan", "GovTech Citizen Lab", "Internal Planning", or "Product Launch".
+- **Project_Owner**: The User who created a Project. In the first MVP, the Project_Owner is the primary user of the Project.
+- **Project_User**: A User who can access a Project. In the first MVP, this is the Project_Owner. When collaboration is introduced, this can also include Project_Members.
+- **Project_Member**: A User added to a Project by the Project_Owner. This is a collaboration feature and is lower priority than the first single-user MVP.
+- **Project_Role**: The access level a User has within a Project. For v1 collaboration: Owner and Member. Roles are project-scoped, not global application roles.
+- **Task**: A tracked work item inside a Project. A Task follows the custom Workflow built for that Project.
+- **Workflow**: A user-built, multi-stage process defined at Project level. Different Projects may use different Workflows depending on the type of work being tracked.
+- **Workflow_Builder**: The screen or process that allows a User to build a Project Workflow by adding, naming, ordering, and editing Workflow Stages.
+- **Stage**: A single step within a Project Workflow. Example stages depend on the Project. For GovTech libat urus, examples may include "Surat Permohonan Onboard", "UAT", and "Go-Live". For procurement or Citizen Lab Projects, the stages may be different.
+- **Stage_Status**: The current state of a Stage for a given Task. Statuses for v1: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
+- **Target_Completion**: The expected date by which a Task should reach its final workflow stage. If only the month is known, use the last day of that month as the target date.
+- **Progress_View**: The graphical representation of Project and Task progress.
+- **Follow_Up_Action**: A follow-up task or action item associated with a Task, with a title, due date, status (Open, In_Progress, Done, Cancelled), and remarks.
+- **Document_Link**: An external URL (typically Google Drive or another document repository) associated with a Task, Stage, or Follow_Up_Action for reference.
 
 ## Requirements
 
-### Requirement 1: Register Agency Owners
+### Requirement 1: Create and Manage Projects
 
-**User Story:** As a team member, I want to register stakeholder organisations as owners, so that I can associate their work items for tracking.
-
-#### Acceptance Criteria
-
-1. THE Tracker SHALL allow registration of an Agency_Owner with a name
-2. THE Tracker SHALL maintain a list of all registered Agency_Owners
-3. WHEN an Agency_Owner is registered, THE Tracker SHALL allow one or more Services to be associated with that Agency_Owner
-
-### Requirement 2: Register Services for Tracking
-
-**User Story:** As a team member, I want to register work items for tracking, so that I can monitor their progress through the workflow.
+**User Story:** As a User, I want to create multiple Projects, so that I can track separate workstreams or groups of Tasks in separate workspaces.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL allow registration of a Service with a name and an associated Agency_Owner
-2. WHEN a Service is registered, THE Tracker SHALL initialize the Service with 10 Workflow Stages in the following fixed order: Surat Permohonan Onboard, Sesi Libat Urus, Surat Permohonan Integrasi, Kelulusan, Perbincangan / Bengkel Teknikal, Bengkel SAF, Pembangunan, SIT, UAT, Go-Live
-3. WHEN a Service is registered, THE Tracker SHALL set all Stages to Pending status by default
-4. THE Tracker SHALL maintain a list of all registered Services
+1. THE Tracker SHALL allow an authenticated User to create a Project with a name and optional description.
+2. THE Tracker SHALL allow the User to build a custom Project Workflow when creating a Project.
+3. WHEN a User creates a Project, THE Tracker SHALL assign that User as the Project_Owner.
+4. THE Tracker SHALL allow a User to create and manage multiple Projects.
+5. THE Tracker SHALL allow a User to view Projects that they own.
+6. THE Tracker SHALL prevent a User from viewing Projects they do not own, unless they are later added as a Project_Member.
+7. THE Tracker SHALL allow the Project_Owner to update the Project name and description.
+8. THE Tracker SHALL scope all Project data, including Tasks, Workflow Stages, Follow_Up_Actions, Document_Links, dashboard data, and history, to the selected Project.
+9. THE Tracker SHALL NOT require a User to declare their agency, ministry, company, or organisation before creating a Project.
 
-### Requirement 3: Update Workflow Stage Status
+### Requirement 2: Build Project Workflow
 
-**User Story:** As a team member, I want to update the workflow stage status of a service, so that the tracker reflects the current progress.
-
-#### Acceptance Criteria
-
-1. THE Tracker SHALL allow updating the Stage_Status of any Stage for a given Service to one of: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, or To_Be_Confirmed
-2. THE Tracker SHALL allow updating any Stage regardless of the completion status of preceding Stages (stages generally follow workflow order, but out-of-order updates are permitted)
-3. WHEN a Stage is marked as Completed, THE Tracker SHALL record the completion date
-4. WHEN a Stage is explicitly marked as In_Progress by a user, THE Tracker SHALL display that Stage as the current active stage for the Service
-
-### Requirement 4: Set Target Completion Timeline
-
-**User Story:** As a team member, I want to set a target completion date for each service, so that I can identify services that may be delayed.
+**User Story:** As a User, I want to build a custom Workflow for each Project, so that every Project can track work using the stages that fit its real process.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL allow setting a Target_Completion date for each Service
-2. WHEN the current date exceeds the Target_Completion date and the Service has not reached Go-Live, THE Tracker SHALL flag the Service as delayed regardless of the Service's current workflow phase
-3. THE Tracker SHALL display the Target_Completion date alongside the Service progress
-4. IF the team only knows the target month, THE Tracker SHALL accept a month selection and use the last day of that month as the Target_Completion date
+1. THE Tracker SHALL allow a Project to have one Project Workflow.
+2. THE Tracker SHALL allow the User to add Workflow Stages to the Project Workflow.
+3. THE Tracker SHALL allow the User to name each Workflow Stage.
+4. THE Tracker SHALL allow the User to order Workflow Stages.
+5. THE Tracker SHALL allow the User to edit Workflow Stage names and order before Tasks are created.
+6. THE Tracker SHALL require each Project Workflow to have at least one Stage before Tasks can be created.
+7. THE Tracker SHALL use the Project Workflow to initialize stages for every Task created inside that Project.
+8. THE Tracker SHALL preserve existing Task stages if the Project Workflow is later changed, unless a future migration/rebuild workflow feature is explicitly implemented.
+9. THE Tracker SHALL not require all Projects to use the same Workflow.
+10. THE Tracker MAY offer sample starter workflows later, but predefined templates SHALL NOT be required for the first MVP.
 
-### Requirement 5: Display Graphical Progress for Individual Services
+### Requirement 3: Create and Manage Tasks Within a Project
 
-**User Story:** As a team member, I want to see a visual representation of each service's workflow progress, so that I can quickly understand its current stage and status.
-
-#### Acceptance Criteria
-
-1. THE Progress_View SHALL display the Workflow as a visual timeline or progress indicator for each Service
-2. THE Progress_View SHALL visually distinguish between different Stage_Status values using distinct visual indicators
-3. THE Progress_View SHALL display the current active Stage prominently for each Service
-4. THE Progress_View SHALL display the Agency_Owner name alongside each Service
-
-### Requirement 6: Display Overall Engagement Progress Summary
-
-**User Story:** As a team member, I want to see an overall summary of workstream progress across all services, so that I can quickly assess the team's workload and achievements.
+**User Story:** As a Project_User, I want to create Tasks inside a Project, so that I can track work items, deadlines, and progress in one place.
 
 #### Acceptance Criteria
 
-1. THE Progress_View SHALL display a summary showing the total number of tracked Services
-2. THE Progress_View SHALL display the count of Services that have reached Go-Live
-3. THE Progress_View SHALL display the count of Services currently in progress (not yet at Go-Live)
-4. THE Progress_View SHALL display the count of Services flagged as delayed
-5. THE Progress_View SHALL present overall progress using visual elements such as summary cards or simple charts
+1. THE Tracker SHALL allow a Project_User to create a Task inside a Project they can access.
+2. THE Tracker SHALL record at minimum a Task title/name and optional description.
+3. THE Tracker SHALL maintain a list of all Tasks for each Project.
+4. THE Tracker SHALL allow a Project_User to update Task details inside a Project they can access.
+5. THE Tracker SHALL prevent Users who cannot access the Project from creating, viewing, or updating that Project's Tasks.
+6. THE Tracker SHALL NOT require a Task to be associated with an agency, ministry, company, or organisation.
+7. THE Tracker SHALL prevent Task creation when the parent Project has no Workflow Stages.
 
-### Requirement 7: Identify Delayed and At-Risk Services
+### Requirement 4: Initialize Task Workflow Stages
 
-**User Story:** As a team member, I want to quickly identify services that are delayed or at risk, so that I can prioritize follow-up actions.
-
-#### Acceptance Criteria
-
-1. WHEN a Service has exceeded its Target_Completion date without reaching Go-Live, THE Tracker SHALL display a delayed status indicator for that Service
-2. THE Progress_View SHALL provide a filtered view showing only delayed Services
-3. THE Progress_View SHALL visually highlight delayed Services distinctly from on-track Services
-
-### Requirement 8: Support Special Projects
-
-**User Story:** As a team member, I want to track special projects that do not follow the standard owner/service hierarchy, so that all tracked work is captured in one place.
+**User Story:** As a Project_User, I want each Task to use the Project Workflow, so that all Tasks inside the same Project follow the same process.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL allow registration of a Special_Project that is not associated with a standard Agency_Owner
-2. THE Tracker SHALL allow tracking progress for a Special_Project independently from standard Services
-3. THE Progress_View SHALL display Special_Projects alongside standard Services
-4. FOR v1, THE Tracker SHALL track each Special_Project with: title, status, target date, follow-up actions, and document links (the standard 10-stage workflow does not apply to Special_Projects)
+1. WHEN a Task is created, THE Tracker SHALL initialize the Task with Workflow Stages copied from the parent Project Workflow.
+2. WHEN a Task is created, THE Tracker SHALL set all Stages to Pending status by default.
+3. THE Tracker SHALL preserve the Project Workflow stage order when creating Task stages.
+4. THE Tracker SHALL maintain all Workflow Stages under the parent Task and Project.
+5. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing the Task's Workflow Stages.
 
-### Requirement 9: Track Follow-Up Actions
+### Requirement 5: Update Workflow Stage Status
 
-**User Story:** As a team member, I want to record follow-up actions for services, so that I can track what needs to be done and identify overdue items.
-
-#### Acceptance Criteria
-
-1. THE Tracker SHALL allow creating a Follow_Up_Action associated with a Service or Special_Project
-2. THE Tracker SHALL record at minimum a title, due date, status, and remarks for each Follow_Up_Action
-3. THE Tracker SHALL support the following Follow_Up_Action statuses: Open, In_Progress, Done, Cancelled
-4. THE Tracker SHALL display pending Follow_Up_Actions (status is Open or In_Progress) that have not been completed
-5. WHEN the current date exceeds the due date of a Follow_Up_Action and its status is not Done or Cancelled, THE Tracker SHALL flag it as overdue
-6. THE Progress_View SHALL display overdue Follow_Up_Actions prominently
-
-### Requirement 10: Support Document Links
-
-**User Story:** As a team member, I want to save and view links to external documents (e.g., Google Drive), so that I can quickly access related files without leaving the tracker.
+**User Story:** As a Project_User, I want to update the workflow stage status of a Task, so that the Tracker reflects the current progress.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL allow saving one or more Document_Links for a Service, Stage, Special_Project, or Follow_Up_Action
-2. THE Tracker SHALL store each Document_Link as an external URL with an optional label or description
-3. THE Tracker SHALL display saved Document_Links alongside the associated entity (Service, Stage, Special_Project, or Follow_Up_Action)
-4. THE Tracker SHALL allow opening a Document_Link in a new browser tab
+1. THE Tracker SHALL allow updating the Stage_Status of any Stage for a given Task to one of: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, or To_Be_Confirmed.
+2. THE Tracker SHALL allow updating any Stage regardless of the completion status of preceding Stages (stages generally follow workflow order, but out-of-order updates are permitted).
+3. WHEN a Stage is marked as Completed, THE Tracker SHALL record the completion date.
+4. WHEN a Stage is explicitly marked as In_Progress by a User, THE Tracker SHALL display that Stage as the current active stage for the Task.
+5. THE Tracker SHALL allow only Users who can access the parent Project to update Stage_Status.
 
-### Requirement 11: User Access and Roles
+### Requirement 6: Set Target Completion Timeline
 
-**User Story:** As an admin, I want to assign roles to team members, so that access is managed appropriately.
-
-#### Acceptance Criteria
-
-1. THE Tracker SHALL support the following user roles for v1: Admin, Lead, Member
-2. THE Tracker SHALL require authentication before granting access
-3. THE Tracker SHALL allow Admin users to manage user accounts and assign roles
-4. THE Tracker SHALL allow Lead and Member users to create, update, and view tracked Services, Special_Projects, and Follow_Up_Actions
-
-### Requirement 12: Search and Filter Services
-
-**User Story:** As a team member, I want to search and filter the list of tracked services, so that I can quickly find specific services as the list grows.
+**User Story:** As a Project_User, I want to set a target completion date for each Task, so that I can identify work items that may be delayed.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL provide a search function to find Services by name or Agency_Owner name
-2. THE Tracker SHALL provide filtering by Agency_Owner, Stage_Status, and delayed status
-3. THE Tracker SHALL display filtered results in the Progress_View
+1. THE Tracker SHALL allow setting a Target_Completion date for each Task.
+2. WHEN the current date exceeds the Target_Completion date and the Task has not reached its final Workflow Stage, THE Tracker SHALL flag the Task as delayed regardless of the Task's current workflow phase.
+3. THE Tracker SHALL display the Target_Completion date alongside the Task progress.
+4. IF the team only knows the target month, THE Tracker SHALL accept a month selection and use the last day of that month as the Target_Completion date.
+5. THE Tracker SHALL scope Target_Completion visibility and updates to Users who can access the parent Project.
 
-### Requirement 13: Track Stage Status Change History
+### Requirement 7: Display Graphical Progress for Individual Tasks
 
-**User Story:** As a team member, I want to see the history of stage status changes, so that I can understand how work has progressed over time.
+**User Story:** As a Project_User, I want to see a visual representation of each Task's workflow progress, so that I can quickly understand its current stage and status.
 
 #### Acceptance Criteria
 
-1. THE Tracker SHALL record each Stage_Status change with the previous status, new status, date of change, and user who made the change
-2. THE Tracker SHALL record each Follow_Up_Action status change with the previous status, new status, date of change, and user who made the change
-3. THE Tracker SHALL allow viewing the change history for a given Service or Follow_Up_Action
+1. THE Progress_View SHALL display the Workflow as a visual timeline or progress indicator for each Task.
+2. THE Progress_View SHALL visually distinguish between different Stage_Status values using distinct visual indicators.
+3. THE Progress_View SHALL display the current active Stage prominently for each Task.
+4. THE Tracker SHALL show Task progress only to Users who can access the parent Project.
+
+### Requirement 8: Display Project Progress Summary
+
+**User Story:** As a Project_User, I want to see an overall summary of progress within a Project, so that I can quickly assess workload, delays, and completion status.
+
+#### Acceptance Criteria
+
+1. THE Progress_View SHALL display a summary showing the total number of tracked Tasks in the selected Project.
+2. THE Progress_View SHALL display the count of Tasks in the selected Project that have reached the final Workflow Stage.
+3. THE Progress_View SHALL display the count of Tasks in the selected Project currently in progress.
+4. THE Progress_View SHALL display the count of Tasks in the selected Project flagged as delayed.
+5. THE Progress_View SHALL present overall Project progress using visual elements such as summary cards or simple charts.
+6. THE Tracker SHALL not mix dashboard counts across Projects unless a future cross-project view is explicitly added.
+
+### Requirement 9: Identify Delayed and At-Risk Tasks
+
+**User Story:** As a Project_User, I want to quickly identify Tasks that are delayed or at risk, so that I can prioritize follow-up actions.
+
+#### Acceptance Criteria
+
+1. WHEN a Task has exceeded its Target_Completion date without reaching its final Workflow Stage, THE Tracker SHALL display a delayed status indicator for that Task.
+2. THE Progress_View SHALL provide a filtered view showing only delayed Tasks within the selected Project.
+3. THE Progress_View SHALL visually highlight delayed Tasks distinctly from on-track Tasks.
+
+### Requirement 10: Track Follow-Up Actions
+
+**User Story:** As a Project_User, I want to record follow-up actions for Tasks, so that I can track what needs to be done and identify overdue items.
+
+#### Acceptance Criteria
+
+1. THE Tracker SHALL allow creating a Follow_Up_Action associated with a Task inside the selected Project.
+2. THE Tracker SHALL record at minimum a title, due date, status, and remarks for each Follow_Up_Action.
+3. THE Tracker SHALL support the following Follow_Up_Action statuses: Open, In_Progress, Done, Cancelled.
+4. THE Tracker SHALL display pending Follow_Up_Actions (status is Open or In_Progress) that have not been completed.
+5. WHEN the current date exceeds the due date of a Follow_Up_Action and its status is not Done or Cancelled, THE Tracker SHALL flag it as overdue.
+6. THE Progress_View SHALL display overdue Follow_Up_Actions prominently for the selected Project.
+7. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Follow_Up_Actions.
+
+### Requirement 11: Support Document Links
+
+**User Story:** As a Project_User, I want to save and view links to external documents, so that I can quickly access related files without leaving the Tracker.
+
+#### Acceptance Criteria
+
+1. THE Tracker SHALL allow saving one or more Document_Links for a Task, Stage, or Follow_Up_Action inside the selected Project.
+2. THE Tracker SHALL store each Document_Link as an external URL with an optional label or description.
+3. THE Tracker SHALL display saved Document_Links alongside the associated entity.
+4. THE Tracker SHALL allow opening a Document_Link in a new browser tab.
+5. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Document_Links.
+6. THE Tracker SHALL NOT upload files or integrate directly with Google Drive API in v1.
+
+### Requirement 12: Search and Filter Tasks
+
+**User Story:** As a Project_User, I want to search and filter the list of tracked Tasks, so that I can quickly find specific work items as the list grows.
+
+#### Acceptance Criteria
+
+1. THE Tracker SHALL provide a search function to find Tasks by title/name within the selected Project.
+2. THE Tracker SHALL provide filtering by Stage_Status and delayed status within the selected Project.
+3. THE Tracker SHALL display filtered results in the Progress_View.
+4. THE Tracker SHALL not return Tasks from Projects the User cannot access.
+
+### Requirement 13: Track Status Change History
+
+**User Story:** As a Project_User, I want to see the history of status changes, so that I can understand how work has progressed over time.
+
+#### Acceptance Criteria
+
+1. THE Tracker SHALL record each Stage_Status change with the previous status, new status, date of change, and User who made the change.
+2. THE Tracker SHALL record each Follow_Up_Action status change with the previous status, new status, date of change, and User who made the change.
+3. THE Tracker SHALL allow viewing the change history for a given Task or Follow_Up_Action.
+4. THE Tracker SHALL show history only to Users who can access the parent Project.
+
+### Requirement 14: Manage Project Members (Collaboration Extension)
+
+**User Story:** As a Project_Owner, I want to add other Users to my Project, so that they can see and collaborate on the Project work when collaboration is needed.
+
+#### Acceptance Criteria
+
+1. THE Tracker SHALL allow the Project_Owner to add an existing User as a Project_Member.
+2. THE Tracker SHALL allow the Project_Owner to remove a Project_Member from the Project.
+3. THE Tracker SHALL prevent Project_Members from adding or removing other Project_Members in v1.
+4. THE Tracker SHALL allow a Project_Member to view and contribute to Tasks inside the Project.
+5. THE Tracker SHALL prevent non-members from viewing, creating, updating, or deleting Project-scoped data.
+6. THE Tracker SHALL not require a global Admin role for normal v1 usage.
+7. THE Tracker SHALL allow a User to use the app alone with only Projects they own before any collaboration feature is used.
+8. This requirement is lower priority than the first single-user MVP flow: create Projects, build Project Workflow, create Tasks, track progress, follow-up actions, document links, and history.
 
 ---
 
@@ -169,32 +218,40 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 The following have been clarified and incorporated into the requirements above:
 
-1. **Stage progression rules**: Stages generally follow workflow order, but users may update stages out of order because real engagement work does not always happen sequentially.
+1. **Project-first and single-user-first access model**: EngageFlow uses a Project/workspace access model. The first MVP focuses on a User creating multiple Projects and managing Tasks alone. Collaboration through Project_Members is a lower-priority extension.
 
-2. **Stage statuses (v1)**: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
+2. **Project-level custom Workflow**: Each Project has its own user-built Workflow. Tasks inside that Project are initialized from the Project Workflow. Different Projects may use different Workflows.
 
-3. **Target completion granularity**: Tracked at the Service level using a target date. If the team only knows the month, use the last day of that month.
+3. **Workflow Builder, not predefined templates**: Users build their Project Workflow by adding, naming, ordering, and editing stages. Starter workflows may be added later, but predefined templates are not required for the first MVP.
 
-4. **Follow-up action statuses**: Open, In_Progress, Done, Cancelled.
+4. **No global Admin role in v1**: Normal v1 usage does not require an application-wide Admin role. Access is scoped by Project ownership and, later, project membership.
 
-5. **Document link scope**: Attachable to Service, Workflow Stage, Special_Project, and Follow_Up_Action.
+5. **Project roles (v1 collaboration)**: Owner and Member. Owner can manage Project membership. Member can view and contribute to work inside the Project. This is lower priority than the first single-user MVP.
 
-6. **User access and roles (v1)**: Admin, Lead, Member. Viewer role can be considered later.
+6. **No agency/company profile required**: EngageFlow does not need to know which agency, ministry, company, or organisation a User belongs to. Project sharing is handled by invitation or membership from the Project_Owner when collaboration is introduced.
 
-7. **Notifications and alerts (v1)**: Visual indicators on the dashboard are sufficient. No email, WhatsApp, or system notifications yet.
+7. **Task-based tracking model**: Tasks are the main tracked work items inside a Project. A Task can represent GovTech libat urus work, MyGOV onboarding work, internal planning work, procurement work, citizen lab work, or other trackable work items.
 
-8. **Historical tracking**: Keep basic history of stage status changes and follow-up action updates.
+8. **Stage progression rules**: Stages generally follow workflow order, but Users may update stages out of order because real work does not always happen sequentially.
 
-9. **Multiple workflows (v1)**: Each service follows a single active workflow. Re-engagement can be handled later.
+9. **Stage statuses (v1)**: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
 
-10. **Special Projects workflow (v1)**: Special Projects do not use the standard 10-stage workflow. They only need basic tracking: title, status, target date, follow-up actions, and document links.
+10. **Target completion granularity**: Tracked at the Task level using a target date. If the team only knows the month, use the last day of that month.
 
-11. **Number of services**: Small-to-medium internal usage. Include basic search and filtering because the list may grow.
+11. **Follow-up action statuses**: Open, In_Progress, Done, Cancelled.
 
-12. **Deployment environment**: Web application. Development should support local container-based setup. Hosting to be decided later.
+12. **Document link scope**: Attachable to Task, Workflow Stage, and Follow_Up_Action.
+
+13. **Notifications and alerts (v1)**: Visual indicators on the dashboard are sufficient. No email, WhatsApp, or system notifications yet.
+
+14. **Historical tracking**: Keep basic history of stage status changes and follow-up action updates.
+
+15. **Number of Tasks**: Small-to-medium internal usage per Project. Include basic search and filtering because the list may grow.
+
+16. **Deployment environment**: Web application. Development should support local container-based setup. Hosting to be decided later.
 
 ---
 
 ## Open Questions
 
-All initial questions have been resolved. No open questions remain for v1 scope.
+No open questions remain for the v1 requirements after adopting the Project-first, custom Workflow Builder, single-user-first, Task-based access model.
