@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import AuthFeatureBand from '@/Components/AuthFeatureBand';
@@ -6,6 +7,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 
 export default function Login() {
+    const [showInfo, setShowInfo] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         password: '',
@@ -23,13 +25,20 @@ export default function Login() {
 
             <div className="min-h-screen bg-white text-gray-950">
                 <header className="border-b border-gray-200 bg-white">
-                    <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+                    <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
                         <AppBrand compact />
-                        <span className="text-sm font-semibold text-blue-700">Ketahui Lebih Lanjut</span>
+                        <button
+                            type="button"
+                            onClick={() => setShowInfo((current) => !current)}
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                        >
+                            Ketahui Lebih Lanjut
+                            <span aria-hidden="true">{showInfo ? '⌃' : '⌄'}</span>
+                        </button>
                     </div>
                 </header>
 
-                <AuthFeatureBand />
+                {showInfo && <AuthFeatureBand />}
 
                 <section className="border-b border-gray-200 bg-white">
                     <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 lg:px-8">
@@ -40,7 +49,7 @@ export default function Login() {
                     </div>
                 </section>
 
-                <main className="relative flex min-h-[580px] items-start justify-center overflow-hidden px-6 py-16">
+                <main className="relative flex min-h-[540px] items-start justify-center overflow-hidden px-6 py-12">
                     <div
                         className="absolute inset-0"
                         aria-hidden="true"
@@ -49,10 +58,10 @@ export default function Login() {
                             backgroundSize: '32px 32px',
                         }}
                     />
-                    <div className="relative w-full max-w-[520px]">
+                    <div className="relative w-full max-w-[460px]">
                         <AuthCard>
-                            <div className="mb-9 text-center">
-                                <h2 className="text-3xl font-bold tracking-tight text-gray-950">
+                            <div className="mb-8 text-center">
+                                <h2 className="text-2xl font-bold tracking-tight text-gray-950">
                                     Log in to EngageFlow
                                 </h2>
                                 <p className="mx-auto mt-4 max-w-sm text-base leading-7 text-gray-600">
@@ -100,7 +109,7 @@ export default function Login() {
                                 </PrimaryButton>
                             </form>
 
-                            <p className="mt-7 text-center text-sm text-gray-500">
+                            <p className="mt-6 text-center text-sm text-gray-500">
                                 User accounts are managed by EngageFlow administrators.
                             </p>
                         </AuthCard>
