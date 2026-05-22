@@ -127,6 +127,8 @@ Each module is a Laravel-style bounded context under `app/Modules/{ModuleName}/`
 - The Dashboard module aggregates data from other modules via their service classes.
 - No formal interface contracts are required in v1. Extract and formalize boundaries if/when modules are split out.
 
+**v1 entity naming note:** The module and entity names (AgencyOwner, Service, WorkflowStage, etc.) reflect the GovTech/MyGOV onboarding use case. In the generic model, these map to: stakeholder/owner → tracked work item → workflow stages. The v1 implementation uses the GovTech-specific names because this is the first configured use case. Future versions may introduce configurable entity labels.
+
 ---
 
 ## Components and Interfaces

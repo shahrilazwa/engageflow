@@ -144,11 +144,11 @@ This plan breaks the EngageFlow Tracker feature into small, reviewable tasks gro
   - Milestone: v1 Foundation
   - Labels: feature, backend, frontend
   - Depends on: Task 6
-  - **Note — Task 6 code alignment required:** Task 6 implemented authentication with role values `engagement_lead` and `engagement_officer` in the User model and migration. Before or during Task 7, update the following to use the new role values `lead` and `member`:
-    - `app/Models/User.php`: constants `ROLE_ENGAGEMENT_LEAD` → `ROLE_LEAD` (value: `'lead'`), `ROLE_ENGAGEMENT_OFFICER` → `ROLE_MEMBER` (value: `'member'`), `ROLES` array
-    - `database/migrations/2026_05_22_070855_add_role_to_users_table.php`: default value from `engagement_officer` to `member`
-    - `database/factories/UserFactory.php`: default role from `engagement_officer` to `member`
-    - Any existing tests that reference `engagement_lead` or `engagement_officer` role values
+  - **Note — Task 6 role alignment required:** Task 6 implemented authentication with role values `engagement_lead` and `engagement_officer`. These must be updated to `lead` and `member` as the first step of Task 7. Use a safe approach:
+    - `app/Models/User.php`: rename constants `ROLE_ENGAGEMENT_LEAD` → `ROLE_LEAD` (value: `'lead'`), `ROLE_ENGAGEMENT_OFFICER` → `ROLE_MEMBER` (value: `'member'`), update `ROLES` array
+    - Create a **new migration** to update the default value and any existing rows: `ALTER TABLE users` change default from `'engagement_officer'` to `'member'`, and `UPDATE users SET role = 'lead' WHERE role = 'engagement_lead'`, `UPDATE users SET role = 'member' WHERE role = 'engagement_officer'`. Do NOT edit the already-merged migration file.
+    - `database/factories/UserFactory.php`: change default role from `'engagement_officer'` to `'member'`
+    - Update any existing tests that reference `engagement_lead` or `engagement_officer` role values
   - Description: Implement the `UserRoleAccess` module. Admin users can create, update, and deactivate user accounts and assign roles (Admin, Lead, Member). Non-admin users cannot access user management screens or actions.
   - Linked requirement/design: Requirement 11.1, 11.3; Design — UserRoleAccess module; Design — Authorization (Policies)
   - Acceptance checklist:

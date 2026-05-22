@@ -6,15 +6,15 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ## Glossary
 
-- **Tracker**: The internal application that monitors engagement progress for services being onboarded into MyGOV
-- **Agency_Owner**: A ministry or government agency that owns one or more digital services targeted for MyGOV integration
-- **Service**: A digital service owned by an Agency_Owner that GovTech wants to make available through MyGOV (e.g., "Pembayaran Saman" owned by PDRM)
-- **Workflow**: The 10-stage engagement and integration process that each Service goes through from initial request to Go-Live
+- **Tracker**: The EngageFlow web application for tracking team workstreams and progress. In v1, configured for the GovTech engagement team's MyGOV onboarding workflow.
+- **Agency_Owner**: (v1 entity) A ministry or government agency that owns one or more tracked work items. In the generic model, this represents a stakeholder or owner organisation. The v1 implementation uses the GovTech/MyGOV context where Agency_Owner is a ministry or agency targeted for integration.
+- **Service**: (v1 entity) A tracked work item that progresses through a workflow. In v1, this represents a digital service owned by an Agency_Owner that GovTech wants to make available through MyGOV (e.g., "Pembayaran Saman" owned by PDRM).
+- **Workflow**: A multi-stage process that each Service goes through. In v1, this is a fixed 10-stage engagement and integration process from initial request to Go-Live.
 - **Stage**: A single step within the Workflow (e.g., "Surat Permohonan Onboard", "UAT", "Go-Live")
 - **Stage_Status**: The current state of a Stage for a given Service. Statuses for v1: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed
-- **Target_Completion**: The expected date by which a Service should reach Go-Live. If only the month is known, use the last day of that month as the target date
-- **Progress_View**: The graphical representation of engagement progress and status for one or more Services
-- **Special_Project**: A tracked item that does not follow the standard Agency_Owner/Service hierarchy. For v1, tracked with: title, status, target date, follow-up actions, and document links (no 10-stage workflow)
+- **Target_Completion**: The expected date by which a Service should reach its final workflow stage. If only the month is known, use the last day of that month as the target date.
+- **Progress_View**: The graphical representation of workstream progress and status for one or more Services
+- **Special_Project**: A tracked item that does not follow the standard Agency_Owner/Service hierarchy. For v1, tracked with: title, status, target date, follow-up actions, and document links (no multi-stage workflow)
 - **Follow_Up_Action**: A follow-up task associated with a Service or Special_Project, with a title, due date, status (Open, In_Progress, Done, Cancelled), and remarks
 - **Document_Link**: An external URL (typically Google Drive) associated with a Service, Stage, Special_Project, or Follow_Up_Action for reference
 - **User_Role**: The access level assigned to a user. For v1: Admin, Lead, Member
@@ -23,7 +23,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 1: Register Agency Owners
 
-**User Story:** As an engagement team member, I want to register ministries and agencies as owners, so that I can associate their services for tracking.
+**User Story:** As a team member, I want to register stakeholder organisations as owners, so that I can associate their work items for tracking.
 
 #### Acceptance Criteria
 
@@ -33,7 +33,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 2: Register Services for Tracking
 
-**User Story:** As an engagement team member, I want to register agency-owned services, so that I can track their engagement progress through the workflow.
+**User Story:** As a team member, I want to register work items for tracking, so that I can monitor their progress through the workflow.
 
 #### Acceptance Criteria
 
@@ -44,7 +44,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 3: Update Workflow Stage Status
 
-**User Story:** As an engagement team member, I want to update the workflow stage status of a service, so that the tracker reflects the current engagement progress.
+**User Story:** As a team member, I want to update the workflow stage status of a service, so that the tracker reflects the current progress.
 
 #### Acceptance Criteria
 
@@ -55,7 +55,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 4: Set Target Completion Timeline
 
-**User Story:** As an engagement team member, I want to set a target completion date for each service, so that I can identify services that may be delayed.
+**User Story:** As a team member, I want to set a target completion date for each service, so that I can identify services that may be delayed.
 
 #### Acceptance Criteria
 
@@ -66,7 +66,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 5: Display Graphical Progress for Individual Services
 
-**User Story:** As an engagement team member, I want to see a visual representation of each service's workflow progress, so that I can quickly understand its current stage and status.
+**User Story:** As a team member, I want to see a visual representation of each service's workflow progress, so that I can quickly understand its current stage and status.
 
 #### Acceptance Criteria
 
@@ -77,7 +77,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 6: Display Overall Engagement Progress Summary
 
-**User Story:** As an engagement team member, I want to see an overall summary of engagement progress across all services, so that I can quickly assess the team's workload and achievements.
+**User Story:** As a team member, I want to see an overall summary of workstream progress across all services, so that I can quickly assess the team's workload and achievements.
 
 #### Acceptance Criteria
 
@@ -89,7 +89,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 7: Identify Delayed and At-Risk Services
 
-**User Story:** As an engagement team member, I want to quickly identify services that are delayed or at risk, so that I can prioritize follow-up actions.
+**User Story:** As a team member, I want to quickly identify services that are delayed or at risk, so that I can prioritize follow-up actions.
 
 #### Acceptance Criteria
 
@@ -99,7 +99,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 8: Support Special Projects
 
-**User Story:** As an engagement team member, I want to track special projects that do not follow the standard agency/service hierarchy, so that all engagement work is captured in one place.
+**User Story:** As a team member, I want to track special projects that do not follow the standard owner/service hierarchy, so that all tracked work is captured in one place.
 
 #### Acceptance Criteria
 
@@ -110,7 +110,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 9: Track Follow-Up Actions
 
-**User Story:** As an engagement team member, I want to record follow-up actions for services, so that I can track what needs to be done and identify overdue items.
+**User Story:** As a team member, I want to record follow-up actions for services, so that I can track what needs to be done and identify overdue items.
 
 #### Acceptance Criteria
 
@@ -123,7 +123,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 10: Support Document Links
 
-**User Story:** As an engagement team member, I want to save and view links to external documents (e.g., Google Drive), so that I can quickly access related files without leaving the tracker.
+**User Story:** As a team member, I want to save and view links to external documents (e.g., Google Drive), so that I can quickly access related files without leaving the tracker.
 
 #### Acceptance Criteria
 
@@ -134,7 +134,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 11: User Access and Roles
 
-**User Story:** As an admin, I want to assign roles to team members, so that access is managed appropriately for the engagement team.
+**User Story:** As an admin, I want to assign roles to team members, so that access is managed appropriately.
 
 #### Acceptance Criteria
 
@@ -145,7 +145,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 12: Search and Filter Services
 
-**User Story:** As an engagement team member, I want to search and filter the list of tracked services, so that I can quickly find specific services as the list grows.
+**User Story:** As a team member, I want to search and filter the list of tracked services, so that I can quickly find specific services as the list grows.
 
 #### Acceptance Criteria
 
@@ -155,7 +155,7 @@ EngageFlow is an internal web application for tracking team workstreams, tasks, 
 
 ### Requirement 13: Track Stage Status Change History
 
-**User Story:** As an engagement team member, I want to see the history of stage status changes, so that I can understand how engagement has progressed over time.
+**User Story:** As a team member, I want to see the history of stage status changes, so that I can understand how work has progressed over time.
 
 #### Acceptance Criteria
 
