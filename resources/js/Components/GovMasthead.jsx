@@ -1,7 +1,33 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faLandmark, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 import MalaysiaFlag from '@/Components/MalaysiaFlag';
+
+function OutlineBuildingIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M4 21h16" />
+            <path d="M6 21V8" />
+            <path d="M18 21V8" />
+            <path d="M8 21v-4h8v4" />
+            <path d="M8 8V4h8v4" />
+            <path d="M6 8h12" />
+            <path d="M9 11h1" />
+            <path d="M14 11h1" />
+            <path d="M9 14h1" />
+            <path d="M14 14h1" />
+        </svg>
+    );
+}
 
 function OutlineLockIcon() {
     return (
@@ -64,7 +90,7 @@ export default function GovMasthead() {
                             <div className="grid gap-5 rounded-lg bg-gray-100 px-5 py-5 sm:gap-8 sm:px-7 md:grid-cols-2 lg:px-8">
                                 <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 sm:gap-3.5">
                                     <span className="flex h-6 w-6 shrink-0 items-start justify-center pt-0.5 text-gray-500">
-                                        <FontAwesomeIcon icon={faLandmark} className="h-5 w-5" aria-hidden="true" />
+                                        <OutlineBuildingIcon />
                                     </span>
                                     <div>
                                         <h2 className="text-sm font-semibold leading-5 text-gray-950">
