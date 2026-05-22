@@ -1,4 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import GovMasthead from '@/Components/GovMasthead';
@@ -27,7 +29,8 @@ export default function Login() {
                 <header className="border-b border-gray-200 bg-white">
                     <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
                         <AppBrand compact />
-                        <div className="flex items-center gap-6 text-sm font-medium leading-5 text-gray-700">
+                        <div className="flex items-center gap-2 text-sm font-medium leading-5 text-gray-700">
+                            <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-gray-950" aria-hidden="true" />
                             <span>BM</span>
                         </div>
                     </div>
