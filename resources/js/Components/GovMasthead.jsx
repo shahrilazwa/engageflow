@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBuildingColumns, faChevronDown, faChevronUp, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronUp, faLandmark, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
+import MalaysiaFlag from '@/Components/MalaysiaFlag';
 
 export default function GovMasthead() {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,41 +15,58 @@ export default function GovMasthead() {
                     className="inline-flex h-11 items-center gap-2 text-sm font-medium leading-5 text-gray-950 hover:text-gray-800"
                     aria-expanded={isOpen}
                 >
-                    <span className="text-xl leading-none" aria-hidden="true">🇲🇾</span>
+                    <MalaysiaFlag />
                     <span>Portal Rasmi Kerajaan Malaysia</span>
                     <span className="text-blue-700">Ketahui Lebih Lanjut</span>
-                    <FontAwesomeIcon icon={isOpen ? faChevronUp : faChevronDown} className="h-3 w-3 text-blue-700" aria-hidden="true" />
+                    <FontAwesomeIcon
+                        icon={isOpen ? faChevronUp : faChevronDown}
+                        className="mt-[1px] h-3 w-3 text-blue-700"
+                        aria-hidden="true"
+                    />
                 </button>
 
-                {isOpen && (
+                <div
+                    className={
+                        'overflow-hidden transition-all duration-300 ease-out ' +
+                        (isOpen ? 'max-h-56 opacity-100' : 'max-h-0 opacity-0')
+                    }
+                >
                     <div className="pb-6">
                         <div className="grid gap-8 rounded-xl bg-gray-100 px-8 py-7 md:grid-cols-2 lg:px-10">
                             <div className="flex gap-5">
-                                <FontAwesomeIcon icon={faBuildingColumns} className="mt-1 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
+                                <FontAwesomeIcon
+                                    icon={faLandmark}
+                                    className="mt-1 h-6 w-6 shrink-0 text-gray-500"
+                                    aria-hidden="true"
+                                />
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
                                         Laman web rasmi kerajaan berakhir dengan .gov.my
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                                    <p className="mt-1 text-sm leading-6 text-gray-600">
                                         Sekiranya pautan tidak berakhir dengan .gov.my, sila keluar dari laman web dengan segera walaupun ia kelihatan serupa.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex gap-5">
-                                <FontAwesomeIcon icon={faLock} className="mt-1 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
+                                <FontAwesomeIcon
+                                    icon={faLock}
+                                    className="mt-1 h-6 w-6 shrink-0 text-gray-500"
+                                    aria-hidden="true"
+                                />
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
                                         Laman web selamat menggunakan HTTPS
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                                    <p className="mt-1 text-sm leading-6 text-gray-600">
                                         Cari ikon kunci atau https:// sebagai langkah berjaga-jaga tambahan. Jika tiada, jangan kongsi sebarang maklumat sensitif.
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </section>
     );
