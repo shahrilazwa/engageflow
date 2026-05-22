@@ -7,7 +7,7 @@ function OutlineBuildingIcon() {
     return (
         <svg
             viewBox="0 0 24 24"
-            className="h-5 w-5"
+            className="h-[22px] w-[22px]"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -33,7 +33,7 @@ function OutlineLockIcon() {
     return (
         <svg
             viewBox="0 0 24 24"
-            className="h-5 w-5"
+            className="h-[22px] w-[22px]"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -88,8 +88,8 @@ export default function GovMasthead() {
                             }
                         >
                             <div className="grid gap-5 rounded-lg bg-gray-100 px-5 py-5 sm:gap-8 sm:px-7 md:grid-cols-2 lg:px-8">
-                                <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 sm:gap-3.5">
-                                    <span className="flex h-6 w-6 shrink-0 items-start justify-center pt-0.5 text-gray-500">
+                                <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-2.5 sm:gap-3">
+                                    <span className="flex h-7 w-7 shrink-0 items-start justify-center pt-[1px] text-gray-500">
                                         <OutlineBuildingIcon />
                                     </span>
                                     <div>
@@ -102,8 +102,8 @@ export default function GovMasthead() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 sm:gap-3.5">
-                                    <span className="flex h-6 w-6 shrink-0 items-start justify-center pt-0.5 text-gray-500">
+                                <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-2.5 sm:gap-3">
+                                    <span className="flex h-7 w-7 shrink-0 items-start justify-center pt-[1px] text-gray-500">
                                         <OutlineLockIcon />
                                     </span>
                                     <div>
