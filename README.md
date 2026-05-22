@@ -213,15 +213,15 @@ Configure in **GitHub → Settings → Branches → Add branch ruleset** for `ma
 
 ## Documentation
 
-Detailed documentation will be added under `docs/` during implementation.
+Project documentation lives in the `docs/` directory.
 
-Planned documentation files:
-
-- `docs/architecture.md`
-- `docs/setup.md`
-- `docs/project-structure.md`
-- `docs/workflow-status.md`
-- `docs/testing.md`
-- `docs/ci.md`
-- `docs/user-guide.md`
-- `docs/troubleshooting.md`
+| File | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Architecture overview: modular monolith, tech stack, module list, service layer pattern, API-first approach |
+| [docs/setup.md](docs/setup.md) | Container-first setup guide, Docker Compose quick start, useful commands |
+| [docs/project-structure.md](docs/project-structure.md) | Directory layout, module structure, frontend structure, MYDS/Tailwind/FontAwesome guidance |
+| [docs/workflow-status.md](docs/workflow-status.md) | Engagement workflow stages, stage statuses, progress calculation, delayed flag, overdue follow-up logic |
+| [docs/testing.md](docs/testing.md) | How to run tests, PHPStan, Pint; test organisation; property-style tests |
+| [docs/ci.md](docs/ci.md) | GitHub Actions CI pipeline steps, MySQL service, branch strategy, branch protection |
+| [docs/user-guide.md](docs/user-guide.md) | User guide for engagement officers |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Common Docker, Composer, migration, and permission issues |
