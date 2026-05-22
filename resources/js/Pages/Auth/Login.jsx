@@ -105,7 +105,12 @@ export default function Login() {
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="mt-2 flex h-11 w-full items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold leading-5 text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="mt-2 flex h-11 w-full items-center justify-center rounded-md px-4 text-sm font-semibold leading-5 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                        style={{
+                                            backgroundColor: processing ? '#93c5fd' : '#2563eb',
+                                            border: '1px solid #2563eb',
+                                            color: '#ffffff',
+                                        }}
                                     >
                                         {processing ? 'Sedang log masuk...' : 'Log Masuk'}
                                     </button>
