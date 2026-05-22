@@ -48,8 +48,7 @@ export default function Login() {
                     <div className="grid gap-14 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
                         <section className="max-w-xl pt-1">
                             <div className="mb-5">
-                                <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
-                                <h1 className="mt-3 text-[28px] font-semibold leading-9 tracking-tight text-gray-950">
+                                <h1 className="text-[28px] font-semibold leading-9 tracking-tight text-gray-950">
                                     Track tasks, status and deadlines at a glance.
                                 </h1>
                                 <p className="mt-3 text-base leading-7 text-gray-600">
