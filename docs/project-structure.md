@@ -75,15 +75,41 @@ app/Modules/ServiceTracking/
 The frontend uses **Inertia.js + React**. Blade is used only for the single root view.
 
 ```
-resources/js/
-├── app.js                  # Inertia bootstrap entry point
-├── Components/             # Reusable React components
-│   └── (e.g. WorkflowTimeline, StatusBadge, OverdueBadge)
-├── Layouts/
-│   └── AuthenticatedLayout.jsx   # Main authenticated layout
-└── Pages/                  # One file per Inertia page/route
-    └── (e.g. Dashboard.jsx, Services/Index.jsx)
+resources/
+├── css/
+│   └── app.css                 # CSS entry point (MYDS + Tailwind)
+├── js/
+│   ├── app.jsx                 # Inertia bootstrap entry point
+│   ├── bootstrap.js            # Axios HTTP client setup
+│   ├── Components/             # Reusable React components (lego blocks)
+│   │   └── (e.g. PageHeader, Card, StatusBadge, EmptyState)
+│   ├── Layouts/                # Layout components
+│   │   └── (e.g. AuthenticatedLayout.jsx)
+│   └── Pages/                  # One file per Inertia page/route
+│       └── (e.g. Dashboard.jsx, Services/Index.jsx)
+└── views/
+    └── app.blade.php           # Single root Inertia view (only Blade file)
 ```
+
+### Lego-Style React Components
+
+EngageFlow uses a **lego-style** frontend component approach, similar in spirit to Laravel Blade components. Pages are built by assembling small, readable UI blocks rather than writing large monolithic page files.
+
+**Principles:**
+- Keep page files small and easy to understand.
+- Extract repeated UI into reusable components under `resources/js/Components/`.
+- Use plain function components with clear props.
+- Use simple state only where needed.
+- Use readable naming.
+- Add short comments for non-obvious UI behaviour.
+
+This approach makes the frontend understandable to a Laravel developer familiar with Blade components — each React component is a self-contained block with clear inputs (props) and a clear output (rendered HTML).
+
+**Example component categories:**
+- Layout: `PageHeader`, `Card`, `EmptyState`
+- Forms: `FormInput`, `FormSelect`, `PrimaryButton`, `SecondaryButton`
+- Status: `StatusBadge`, `DelayedBadge`, `OverdueBadge`
+- Domain: `WorkflowTimeline`, `DashboardSummaryCard`, `FollowUpPanel`
 
 > **Blade guardrail:** Only `resources/views/app.blade.php` should exist as a Blade file. All application screens are built as Inertia React components.
 
