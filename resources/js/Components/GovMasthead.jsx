@@ -7,7 +7,7 @@ function OutlineLockIcon() {
     return (
         <svg
             viewBox="0 0 24 24"
-            className="h-4 w-4"
+            className="h-5 w-5"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -77,7 +77,7 @@ export default function GovMasthead() {
                                 </div>
 
                                 <div className="flex gap-3 sm:gap-4">
-                                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-gray-500">
+                                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-gray-500">
                                         <OutlineLockIcon />
                                     </span>
                                     <div>
