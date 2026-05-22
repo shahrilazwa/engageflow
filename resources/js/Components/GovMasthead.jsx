@@ -39,8 +39,8 @@ export default function GovMasthead() {
                     <div className="min-h-0 overflow-hidden">
                         <div
                             className={
-                                'pb-6 transition-all duration-300 ease-out ' +
-                                (isOpen ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0')
+                                'pb-6 transition-opacity duration-200 ease-out ' +
+                                (isOpen ? 'opacity-100' : 'opacity-0')
                             }
                         >
                             <div className="grid gap-8 rounded-xl bg-gray-100 px-8 py-7 md:grid-cols-2 lg:px-10">
