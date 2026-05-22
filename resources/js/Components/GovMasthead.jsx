@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBuildingColumns, faChevronDown, faChevronUp, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 export default function GovMasthead() {
@@ -9,23 +11,23 @@ export default function GovMasthead() {
                 <button
                     type="button"
                     onClick={() => setIsOpen((current) => !current)}
-                    className="flex h-11 items-center gap-2 text-sm font-medium leading-5 text-gray-950 hover:text-gray-800"
+                    className="inline-flex h-11 items-center gap-2 text-sm font-medium leading-5 text-gray-950 hover:text-gray-800"
                     aria-expanded={isOpen}
                 >
-                    <span className="text-xs font-semibold" aria-hidden="true">MY</span>
+                    <span className="text-xl leading-none" aria-hidden="true">🇲🇾</span>
                     <span>Portal Rasmi Kerajaan Malaysia</span>
                     <span className="text-blue-700">Ketahui Lebih Lanjut</span>
-                    <span className="text-blue-700" aria-hidden="true">{isOpen ? '⌃' : '⌄'}</span>
+                    <FontAwesomeIcon icon={isOpen ? faChevronUp : faChevronDown} className="h-3 w-3 text-blue-700" aria-hidden="true" />
                 </button>
 
                 {isOpen && (
                     <div className="pb-6">
                         <div className="grid gap-8 rounded-xl bg-gray-100 px-8 py-7 md:grid-cols-2 lg:px-10">
                             <div className="flex gap-5">
-                                <div className="mt-1 text-gray-500" aria-hidden="true">⌂</div>
+                                <FontAwesomeIcon icon={faBuildingColumns} className="mt-1 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
-                                        Pautan portal rasmi berakhir dengan .gov.my
+                                        Laman web rasmi kerajaan berakhir dengan .gov.my
                                     </h2>
                                     <p className="mt-2 text-sm leading-6 text-gray-600">
                                         Sekiranya pautan tidak berakhir dengan .gov.my, sila keluar dari laman web dengan segera walaupun ia kelihatan serupa.
@@ -34,13 +36,13 @@ export default function GovMasthead() {
                             </div>
 
                             <div className="flex gap-5">
-                                <div className="mt-1 text-gray-500" aria-hidden="true">🔒</div>
+                                <FontAwesomeIcon icon={faLock} className="mt-1 h-5 w-5 shrink-0 text-gray-500" aria-hidden="true" />
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
-                                        Portal yang selamat menggunakan HTTPS
+                                        Laman web selamat menggunakan HTTPS
                                     </h2>
                                     <p className="mt-2 text-sm leading-6 text-gray-600">
-                                        Periksa ikon kunci atau https:// di depan pautan. Jika tiada, jangan kongsi sebarang maklumat sensitif.
+                                        Cari ikon kunci atau https:// sebagai langkah berjaga-jaga tambahan. Jika tiada, jangan kongsi sebarang maklumat sensitif.
                                     </p>
                                 </div>
                             </div>
