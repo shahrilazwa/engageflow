@@ -1,17 +1,11 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleCheck, faGlobe, faUserShield } from '@fortawesome/free-solid-svg-icons';
+import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import GovMasthead from '@/Components/GovMasthead';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
-
-const guidanceItems = [
-    'Pantau status engagement kementerian dan agensi secara berstruktur.',
-    'Semak peringkat kerja, tindakan susulan dan status kelewatan dengan lebih jelas.',
-    'Akaun pengguna dicipta dan diuruskan oleh pentadbir EngageFlow.',
-];
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -51,40 +45,21 @@ export default function Login() {
                 </header>
 
                 <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-                    <div className="grid gap-14 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start">
-                        <section className="max-w-md pt-1">
-                            <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
-                            <h1 className="mt-3 text-[28px] font-semibold leading-9 tracking-tight text-gray-950">Log Masuk</h1>
-                            <p className="mt-3 text-base leading-7 text-gray-600">
-                                Masukkan kelayakan anda untuk mengakses ruang kerja pemantauan engagement GovTech.
-                            </p>
-
-                            <div className="mt-8 space-y-4 border-l-2 border-blue-100 pl-5">
-                                <div className="flex items-start gap-3">
-                                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                                        <FontAwesomeIcon icon={faUserShield} className="h-4 w-4" aria-hidden="true" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-sm font-semibold leading-5 text-gray-950">Ruang kerja dalaman</h2>
-                                        <p className="mt-1 text-sm leading-6 text-gray-600">
-                                            Akses terhad kepada pegawai yang mempunyai akaun EngageFlow.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <ul className="space-y-3">
-                                    {guidanceItems.map((item) => (
-                                        <li key={item} className="flex gap-3 text-sm leading-6 text-gray-600">
-                                            <FontAwesomeIcon
-                                                icon={faCircleCheck}
-                                                className="mt-1 h-4 w-4 shrink-0 text-blue-600"
-                                                aria-hidden="true"
-                                            />
-                                            <span>{item}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                    <div className="grid gap-14 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
+                        <section className="max-w-xl pt-1">
+                            <div className="mb-5">
+                                <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
+                                <h1 className="mt-3 text-[28px] font-semibold leading-9 tracking-tight text-gray-950">Log Masuk</h1>
+                                <p className="mt-3 text-base leading-7 text-gray-600">
+                                    Pantau engagement kementerian dan agensi dengan lebih tersusun.
+                                </p>
                             </div>
+
+                            <img
+                                src="/images/login-illustration.webp"
+                                alt="Ilustrasi pemantauan engagement dan kemajuan kerja"
+                                className="w-full max-w-[560px] rounded-2xl object-contain"
+                            />
                         </section>
 
                         <section className="flex justify-center lg:justify-start">
