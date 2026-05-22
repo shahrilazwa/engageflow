@@ -8,21 +8,21 @@ export default function GovMasthead() {
 
     return (
         <section className="border-b border-gray-200 bg-white">
-            <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <button
                     type="button"
                     onClick={() => setIsOpen((current) => !current)}
-                    className="inline-flex h-9 items-center gap-2 text-xs font-medium leading-[18px] text-gray-950 hover:text-gray-800"
+                    className="inline-flex h-9 max-w-full items-center gap-1.5 overflow-hidden text-[11px] font-medium leading-4 text-gray-950 hover:text-gray-800 sm:gap-2 sm:text-xs sm:leading-[18px]"
                     aria-expanded={isOpen}
                     aria-controls="gov-masthead-panel"
                 >
                     <MalaysiaFlag />
-                    <span>Portal Rasmi Kerajaan Malaysia</span>
-                    <span className="text-blue-700">Ketahui Lebih Lanjut</span>
+                    <span className="shrink-0 whitespace-nowrap">Portal Rasmi Kerajaan Malaysia</span>
+                    <span className="shrink-0 whitespace-nowrap text-blue-700">Ketahui Lebih Lanjut</span>
                     <FontAwesomeIcon
                         icon={faChevronDown}
                         className={
-                            'mt-px h-2.5 w-2.5 text-blue-700 transition-transform duration-300 ease-out ' +
+                            'mt-px h-2.5 w-2.5 shrink-0 text-blue-700 transition-transform duration-300 ease-out ' +
                             (isOpen ? 'rotate-180' : 'rotate-0')
                         }
                         aria-hidden="true"
@@ -43,8 +43,8 @@ export default function GovMasthead() {
                                 (isOpen ? 'opacity-100' : 'opacity-0')
                             }
                         >
-                            <div className="grid gap-8 rounded-lg bg-gray-100 px-7 py-5 md:grid-cols-2 lg:px-8">
-                                <div className="flex gap-4">
+                            <div className="grid gap-5 rounded-lg bg-gray-100 px-5 py-5 sm:gap-8 sm:px-7 md:grid-cols-2 lg:px-8">
+                                <div className="flex gap-3 sm:gap-4">
                                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-gray-500">
                                         <FontAwesomeIcon icon={faLandmark} className="h-4 w-4" aria-hidden="true" />
                                     </span>
@@ -58,7 +58,7 @@ export default function GovMasthead() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="flex gap-3 sm:gap-4">
                                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-gray-500">
                                         <FontAwesomeIcon icon={faLock} className="h-4 w-4" aria-hidden="true" />
                                     </span>
