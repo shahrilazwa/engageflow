@@ -67,7 +67,13 @@ export default function GovMasthead() {
                                             Laman web selamat menggunakan HTTPS
                                         </h2>
                                         <p className="mt-1 text-xs leading-[18px] text-gray-600">
-                                            Cari ikon kunci atau https:// sebagai langkah berjaga-jaga tambahan. Jika tiada, jangan kongsi sebarang maklumat sensitif.
+                                            Cari ikon kunci (
+                                            <FontAwesomeIcon
+                                                icon={faLock}
+                                                className="mx-0.5 inline h-3 w-3 align-[-1px] text-yellow-500"
+                                                aria-label="kunci"
+                                            />
+                                            ) atau https:// sebagai langkah berjaga-jaga tambahan. Jika tiada, jangan kongsi sebarang maklumat sensitif.
                                         </p>
                                     </div>
                                 </div>
