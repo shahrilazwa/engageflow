@@ -9,13 +9,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-/** Roles available in v1. */
-const USER_ROLES = ['admin', 'engagement_lead', 'engagement_officer'];
-
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    /** Roles available in v1. */
+    public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_ENGAGEMENT_LEAD = 'engagement_lead';
+
+    public const ROLE_ENGAGEMENT_OFFICER = 'engagement_officer';
+
+    public const ROLES = [
+        self::ROLE_ADMIN,
+        self::ROLE_ENGAGEMENT_LEAD,
+        self::ROLE_ENGAGEMENT_OFFICER,
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
@@ -35,6 +45,6 @@ class User extends Authenticatable
     /** Check if the user has the admin role. */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === self::ROLE_ADMIN;
     }
 }
