@@ -49,10 +49,10 @@ export default function Login() {
                         <section className="max-w-xl pt-1">
                             <div className="mb-5">
                                 <h1 className="text-[28px] font-semibold leading-9 tracking-tight text-gray-950">
-                                    Track tasks, status and deadlines at a glance.
+                                    Jejak tugas, status dan tarikh akhir dalam satu paparan.
                                 </h1>
                                 <p className="mt-3 text-base leading-7 text-gray-600">
-                                    A shared workspace for teams to manage actions, monitor progress and stay aligned across multiple workstreams.
+                                    Ruang kerja bersama untuk pasukan mengurus tindakan, memantau kemajuan dan kekal selaras merentas pelbagai aliran kerja.
                                 </p>
                             </div>
 
@@ -70,41 +70,31 @@ export default function Login() {
                                         Log masuk ke EngageFlow
                                     </h2>
                                     <p className="mt-1.5 text-sm leading-5 text-gray-500">
-                                        Sila masukkan butiran akaun anda.
+                                        Masukkan nama pengguna dan kata laluan anda.
                                     </p>
-                                </div>
-
-                                <div className="mb-5 flex rounded-lg border border-gray-200 bg-gray-50 p-1 text-sm font-semibold leading-5 text-gray-600">
-                                    <span className="flex-1 rounded-md bg-white px-3 py-2.5 text-center text-blue-700 shadow-sm">
-                                        Kata Laluan
-                                    </span>
-                                    <span className="flex-1 px-3 py-2.5 text-center text-gray-400">
-                                        E-mel
-                                    </span>
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div>
                                         <label htmlFor="email" className="mb-1.5 block text-sm font-medium leading-5 text-gray-700">
-                                            E-mel Kerajaan
+                                            Nama pengguna
                                         </label>
                                         <input
                                             id="email"
                                             type="email"
-                                            autoComplete="email"
+                                            autoComplete="username"
                                             value={data.email}
                                             onChange={(event) => setData('email', event.target.value)}
                                             className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm leading-5 text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                            placeholder="nama@agensi.gov.my"
+                                            placeholder="Masukkan nama pengguna"
                                             required
                                         />
-                                        <p className="mt-1.5 text-xs leading-[18px] text-gray-500">Mesti berakhir dengan .gov.my</p>
                                         <InputError message={errors.email} />
                                     </div>
 
                                     <div>
                                         <label htmlFor="password" className="mb-1.5 block text-sm font-medium leading-5 text-gray-700">
-                                            Kata Laluan
+                                            Kata laluan
                                         </label>
                                         <input
                                             id="password"

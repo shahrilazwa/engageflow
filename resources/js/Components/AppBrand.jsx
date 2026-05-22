@@ -1,7 +1,6 @@
 export default function AppBrand({ compact = false }) {
     const logoSize = compact ? 'h-9 w-9 text-sm' : 'h-10 w-10 text-sm';
     const titleSize = compact ? 'text-base leading-6' : 'text-lg leading-7';
-    const subtitleSize = compact ? 'text-sm leading-5' : 'text-sm leading-5';
 
     return (
         <div className="flex items-center gap-3">
@@ -11,10 +10,7 @@ export default function AppBrand({ compact = false }) {
             >
                 E
             </div>
-            <div className="leading-tight">
-                <p className={`${titleSize} font-semibold tracking-tight text-gray-950`}>EngageFlow</p>
-                <p className={`${subtitleSize} text-gray-500`}>GovTech engagement tracker</p>
-            </div>
+            <p className={`${titleSize} font-semibold tracking-tight text-gray-950`}>EngageFlow</p>
         </div>
     );
 }
