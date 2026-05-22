@@ -34,17 +34,11 @@ export default function Login() {
                                 <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-gray-950" aria-hidden="true" />
                                 <span>BM</span>
                             </div>
-                            <button
-                                type="button"
-                                className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold leading-5 text-white shadow-sm hover:bg-blue-700"
-                            >
-                                Log Masuk
-                            </button>
                         </div>
                     </div>
                 </header>
 
-                <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+                <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
                     <div className="grid gap-14 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
                         <section className="max-w-xl pt-1">
                             <div className="mb-5">
@@ -65,7 +59,7 @@ export default function Login() {
 
                         <section className="flex justify-center lg:justify-start">
                             <AuthCard>
-                                <div className="mb-5 text-center">
+                                <div className="mb-4 text-center">
                                     <h2 className="text-[22px] font-semibold leading-8 tracking-tight text-gray-950">
                                         Log masuk ke EngageFlow
                                     </h2>
