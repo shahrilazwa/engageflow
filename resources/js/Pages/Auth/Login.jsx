@@ -49,15 +49,17 @@ export default function Login() {
                         <section className="max-w-xl pt-1">
                             <div className="mb-5">
                                 <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
-                                <h1 className="mt-3 text-[28px] font-semibold leading-9 tracking-tight text-gray-950">Log Masuk</h1>
+                                <h1 className="mt-3 text-[28px] font-semibold leading-9 tracking-tight text-gray-950">
+                                    Track tasks, status and deadlines at a glance.
+                                </h1>
                                 <p className="mt-3 text-base leading-7 text-gray-600">
-                                    Pantau engagement kementerian dan agensi dengan lebih tersusun.
+                                    A shared workspace for teams to manage actions, monitor progress and stay aligned across multiple workstreams.
                                 </p>
                             </div>
 
                             <img
                                 src="/images/login-illustration.webp"
-                                alt="Ilustrasi pemantauan engagement dan kemajuan kerja"
+                                alt="Ilustrasi pemantauan tugas, status dan kemajuan kerja"
                                 className="w-full max-w-[560px] rounded-2xl object-contain"
                             />
                         </section>
