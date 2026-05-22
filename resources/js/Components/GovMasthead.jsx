@@ -34,11 +34,9 @@ export default function GovMasthead() {
                     <div className="pb-6">
                         <div className="grid gap-8 rounded-xl bg-gray-100 px-8 py-7 md:grid-cols-2 lg:px-10">
                             <div className="flex gap-5">
-                                <FontAwesomeIcon
-                                    icon={faLandmark}
-                                    className="mt-1 h-6 w-6 shrink-0 text-gray-500"
-                                    aria-hidden="true"
-                                />
+                                <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center text-gray-500">
+                                    <FontAwesomeIcon icon={faLandmark} className="h-5 w-5" aria-hidden="true" />
+                                </span>
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
                                         Laman web rasmi kerajaan berakhir dengan .gov.my
@@ -50,11 +48,9 @@ export default function GovMasthead() {
                             </div>
 
                             <div className="flex gap-5">
-                                <FontAwesomeIcon
-                                    icon={faLock}
-                                    className="mt-1 h-6 w-6 shrink-0 text-gray-500"
-                                    aria-hidden="true"
-                                />
+                                <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center text-gray-500">
+                                    <FontAwesomeIcon icon={faLock} className="h-5 w-5" aria-hidden="true" />
+                                </span>
                                 <div>
                                     <h2 className="text-base font-semibold leading-6 text-gray-950">
                                         Laman web selamat menggunakan HTTPS

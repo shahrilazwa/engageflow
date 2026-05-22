@@ -1,15 +1,22 @@
 export default function MalaysiaFlag() {
     return (
-        <span
-            className="relative inline-block h-[14px] w-[28px] overflow-hidden rounded-[2px] border border-gray-200 bg-white shadow-sm"
+        <svg
+            viewBox="0 0 28 18"
+            className="h-[14px] w-[22px] shrink-0 rounded-[2px] shadow-sm ring-1 ring-gray-200"
             aria-label="Malaysia"
             role="img"
         >
-            <span className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,#d0021b_0,#d0021b_1px,#ffffff_1px,#ffffff_2px)]" />
-            <span className="absolute left-0 top-0 h-[8px] w-[12px] bg-blue-800" />
-            <span className="absolute left-[3px] top-[2px] h-[5px] w-[5px] rounded-full bg-yellow-400" />
-            <span className="absolute left-[5px] top-[2px] h-[5px] w-[5px] rounded-full bg-blue-800" />
-            <span className="absolute left-[9px] top-[3px] h-[2px] w-[2px] rounded-full bg-yellow-400" />
-        </span>
+            <rect width="28" height="18" fill="#fff" />
+            {Array.from({ length: 7 }).map((_, index) => (
+                <rect key={index} x="0" y={index * 18 / 7} width="28" height={18 / 14} fill="#cc0001" />
+            ))}
+            <rect width="12" height="9" fill="#010066" />
+            <circle cx="5" cy="4.5" r="3.1" fill="#ffcc00" />
+            <circle cx="6.2" cy="4.5" r="2.7" fill="#010066" />
+            <polygon
+                points="9.2,2.1 9.55,3.5 10.65,2.55 9.95,3.82 11.4,3.72 10.05,4.25 11.15,5.2 9.75,4.85 9.95,6.3 9.2,5.05 8.45,6.3 8.65,4.85 7.25,5.2 8.35,4.25 7,3.72 8.45,3.82 7.75,2.55 8.85,3.5"
+                fill="#ffcc00"
+            />
+        </svg>
     );
 }
