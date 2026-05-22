@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 /* MYDS base styles */
 @import '@govtechmy/myds-style/full.css';
 
@@ -9,3 +11,28 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.jsx';
+
+/* MYDS/go.miniapp typography approximation */
+:root {
+    --font-sans: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html,
+body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    text-rendering: geometricPrecision;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+.font-heading,
+.font-body {
+    font-family: var(--font-sans);
+}
