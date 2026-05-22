@@ -5,7 +5,6 @@ import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import GovMasthead from '@/Components/GovMasthead';
 import InputError from '@/Components/InputError';
-import PrimaryButton from '@/Components/PrimaryButton';
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -103,9 +102,13 @@ export default function Login() {
                                         <InputError message={errors.password} />
                                     </div>
 
-                                    <PrimaryButton processing={processing}>
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="mt-2 flex h-11 w-full items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold leading-5 text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
                                         {processing ? 'Sedang log masuk...' : 'Log Masuk'}
-                                    </PrimaryButton>
+                                    </button>
                                 </form>
                             </AuthCard>
                         </section>
