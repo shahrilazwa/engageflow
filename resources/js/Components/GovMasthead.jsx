@@ -62,9 +62,9 @@ export default function GovMasthead() {
                             }
                         >
                             <div className="grid gap-5 rounded-lg bg-gray-100 px-5 py-5 sm:gap-8 sm:px-7 md:grid-cols-2 lg:px-8">
-                                <div className="flex gap-3 sm:gap-4">
-                                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-gray-500">
-                                        <FontAwesomeIcon icon={faLandmark} className="h-4 w-4" aria-hidden="true" />
+                                <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 sm:gap-3.5">
+                                    <span className="flex h-6 w-6 shrink-0 items-start justify-center pt-0.5 text-gray-500">
+                                        <FontAwesomeIcon icon={faLandmark} className="h-5 w-5" aria-hidden="true" />
                                     </span>
                                     <div>
                                         <h2 className="text-sm font-semibold leading-5 text-gray-950">
@@ -76,8 +76,8 @@ export default function GovMasthead() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 sm:gap-4">
-                                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-gray-500">
+                                <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 sm:gap-3.5">
+                                    <span className="flex h-6 w-6 shrink-0 items-start justify-center pt-0.5 text-gray-500">
                                         <OutlineLockIcon />
                                     </span>
                                     <div>
