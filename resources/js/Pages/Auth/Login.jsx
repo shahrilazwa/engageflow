@@ -1,7 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
-import AuthInfoBand from '@/Components/AuthInfoBand';
+import AuthFeatureBand from '@/Components/AuthFeatureBand';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 
@@ -25,22 +25,22 @@ export default function Login() {
                 <header className="border-b border-gray-200 bg-white">
                     <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
                         <AppBrand compact />
-                        <span className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm">
-                            Secure access
-                        </span>
+                        <span className="text-sm font-semibold text-blue-700">Ketahui Lebih Lanjut</span>
                     </div>
                 </header>
 
-                <AuthInfoBand />
+                <AuthFeatureBand />
 
-                <section className="border-t border-gray-200 bg-white">
+                <section className="border-b border-gray-200 bg-white">
                     <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 lg:px-8">
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-950">EngageFlow</h1>
-                        <span className="text-sm font-medium text-gray-500">Internal engagement workspace</span>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-950">EngageFlow</h1>
+                        <span className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-900 shadow-sm">
+                            Secure access
+                        </span>
                     </div>
                 </section>
 
-                <main className="relative flex min-h-[560px] items-start justify-center overflow-hidden border-t border-gray-200 px-6 py-14">
+                <main className="relative flex min-h-[580px] items-start justify-center overflow-hidden px-6 py-16">
                     <div
                         className="absolute inset-0"
                         aria-hidden="true"
@@ -49,16 +49,14 @@ export default function Login() {
                             backgroundSize: '32px 32px',
                         }}
                     />
-                    <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white to-transparent" aria-hidden="true" />
-
                     <div className="relative w-full max-w-[520px]">
                         <AuthCard>
-                            <div className="mb-8 text-center">
+                            <div className="mb-9 text-center">
                                 <h2 className="text-3xl font-bold tracking-tight text-gray-950">
                                     Log in to EngageFlow
                                 </h2>
                                 <p className="mx-auto mt-4 max-w-sm text-base leading-7 text-gray-600">
-                                    Manage ministry and agency engagement progress from one workspace.
+                                    Welcome back. Manage ministry and agency engagement progress from one workspace.
                                 </p>
                             </div>
 
