@@ -44,7 +44,7 @@ export default function Login() {
                     </div>
                 </header>
 
-                <main className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+                <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
                     <div className="grid gap-14 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start">
                         <section className="max-w-md pt-1">
                             <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
@@ -52,11 +52,18 @@ export default function Login() {
                             <p className="mt-3 text-base leading-7 text-gray-600">
                                 Masukkan kelayakan anda untuk mengakses ruang kerja pemantauan engagement GovTech.
                             </p>
+
+                            <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
+                                <h2 className="text-sm font-semibold leading-5 text-gray-950">Akaun pengguna</h2>
+                                <p className="mt-1 text-sm leading-6 text-gray-600">
+                                    Akaun pengguna diuruskan oleh pentadbir EngageFlow.
+                                </p>
+                            </div>
                         </section>
 
                         <section className="flex justify-center lg:justify-start">
                             <AuthCard>
-                                <div className="mb-7 text-center">
+                                <div className="mb-6 text-center">
                                     <h2 className="text-[22px] font-semibold leading-8 tracking-tight text-gray-950">
                                         Log masuk ke EngageFlow
                                     </h2>
@@ -65,7 +72,7 @@ export default function Login() {
                                     </p>
                                 </div>
 
-                                <div className="mb-6 flex rounded-lg border border-gray-200 bg-gray-50 p-1 text-sm font-semibold leading-5 text-gray-600">
+                                <div className="mb-5 flex rounded-lg border border-gray-200 bg-gray-50 p-1 text-sm font-semibold leading-5 text-gray-600">
                                     <span className="flex-1 rounded-md bg-white px-3 py-2.5 text-center text-blue-700 shadow-sm">
                                         Kata Laluan
                                     </span>
@@ -114,10 +121,6 @@ export default function Login() {
                                         {processing ? 'Sedang log masuk...' : 'Log Masuk'}
                                     </PrimaryButton>
                                 </form>
-
-                                <p className="mt-6 text-center text-sm leading-5 text-gray-500">
-                                    Akaun pengguna diuruskan oleh pentadbir EngageFlow.
-                                </p>
                             </AuthCard>
                         </section>
                     </div>
