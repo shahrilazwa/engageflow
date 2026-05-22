@@ -4,25 +4,25 @@
 
 EngageFlow is a web application for tracking projects, tasks, actions, deadlines, and progress. It provides a structured, visual alternative to manual spreadsheet tracking and allows a user to manage multiple projects in one place.
 
-The core product model is **project-first and single-user-first**: a user creates one or more Projects, chooses or defines the Workflow for each Project, creates Tasks inside each Project, monitors progress, and tracks follow-up actions and document links. The first MVP is designed to work well for one user managing their own Projects. Collaboration through Project members can be added after the core single-user workflow is working.
+The core product model is **project-first and single-user-first**: a user creates one or more Projects, builds the Workflow for each Project, creates Tasks inside each Project, monitors progress, and tracks follow-up actions and document links. The first MVP is designed to work well for one user managing their own Projects. Collaboration through Project members can be added after the core single-user workflow is working.
 
 The app does not need to know which agency, ministry, company, or organisation a user belongs to. Project sharing, when introduced, is controlled by the Project_Owner through project membership.
 
-The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work, but the underlying model is generic: Project → Project Workflow → Tasks → Workflow Stages / Actions / Documents / Progress. Different Projects may use different Workflows, such as GovTech libat urus, perolehan kerajaan, or GovTech Citizen Lab.
+The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work, but the underlying model is generic: Project → Custom Project Workflow → Tasks → Workflow Stages / Actions / Documents / Progress. Different Projects may use different Workflows, such as GovTech libat urus, perolehan kerajaan, or GovTech Citizen Lab. Users build the stages that fit their Project instead of being forced to choose from a predefined template.
 
 ## Glossary
 
 - **Tracker**: The EngageFlow web application for tracking projects, tasks, progress, deadlines, action items, and related document links.
 - **User**: A person with an authenticated account in EngageFlow. A User can create multiple Projects and use the app alone.
-- **Project**: A workspace/container created by a User to group related Tasks under a selected Workflow. Examples: "GovTech Libat Urus", "Perolehan Kerajaan", "GovTech Citizen Lab", "Internal Planning", or "Product Launch".
+- **Project**: A workspace/container created by a User to group related Tasks under a custom Workflow. Examples: "GovTech Libat Urus", "Perolehan Kerajaan", "GovTech Citizen Lab", "Internal Planning", or "Product Launch".
 - **Project_Owner**: The User who created a Project. In the first MVP, the Project_Owner is the primary user of the Project.
 - **Project_User**: A User who can access a Project. In the first MVP, this is the Project_Owner. When collaboration is introduced, this can also include Project_Members.
 - **Project_Member**: A User added to a Project by the Project_Owner. This is a collaboration feature and is lower priority than the first single-user MVP.
 - **Project_Role**: The access level a User has within a Project. For v1 collaboration: Owner and Member. Roles are project-scoped, not global application roles.
-- **Task**: A tracked work item inside a Project. A Task follows the Workflow selected for that Project.
-- **Workflow**: A multi-stage process selected or defined at Project level. Different Projects may use different Workflows depending on the type of work being tracked.
-- **Workflow_Template**: A reusable predefined Workflow that can be selected when creating a Project. Example templates may include GovTech Libat Urus / MyGOV Onboarding, Perolehan Kerajaan, and GovTech Citizen Lab.
-- **Stage**: A single step within a Project Workflow. Example stages depend on the selected Workflow. For GovTech libat urus, examples include "Surat Permohonan Onboard", "UAT", and "Go-Live".
+- **Task**: A tracked work item inside a Project. A Task follows the custom Workflow built for that Project.
+- **Workflow**: A user-built, multi-stage process defined at Project level. Different Projects may use different Workflows depending on the type of work being tracked.
+- **Workflow_Builder**: The screen or process that allows a User to build a Project Workflow by adding, naming, ordering, and editing Workflow Stages.
+- **Stage**: A single step within a Project Workflow. Example stages depend on the Project. For GovTech libat urus, examples may include "Surat Permohonan Onboard", "UAT", and "Go-Live". For procurement or Citizen Lab Projects, the stages may be different.
 - **Stage_Status**: The current state of a Stage for a given Task. Statuses for v1: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
 - **Target_Completion**: The expected date by which a Task should reach its final workflow stage. If only the month is known, use the last day of that month as the target date.
 - **Progress_View**: The graphical representation of Project and Task progress.
@@ -38,7 +38,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 #### Acceptance Criteria
 
 1. THE Tracker SHALL allow an authenticated User to create a Project with a name and optional description.
-2. THE Tracker SHALL allow the User to choose a Workflow_Template or define a Project Workflow when creating a Project.
+2. THE Tracker SHALL allow the User to build a custom Project Workflow when creating a Project.
 3. WHEN a User creates a Project, THE Tracker SHALL assign that User as the Project_Owner.
 4. THE Tracker SHALL allow a User to create and manage multiple Projects.
 5. THE Tracker SHALL allow a User to view Projects that they own.
@@ -47,19 +47,22 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 8. THE Tracker SHALL scope all Project data, including Tasks, Workflow Stages, Follow_Up_Actions, Document_Links, dashboard data, and history, to the selected Project.
 9. THE Tracker SHALL NOT require a User to declare their agency, ministry, company, or organisation before creating a Project.
 
-### Requirement 2: Select or Define Project Workflow
+### Requirement 2: Build Project Workflow
 
-**User Story:** As a User, I want each Project to have its own Workflow, so that different types of Projects can track work using the stages that fit their process.
+**User Story:** As a User, I want to build a custom Workflow for each Project, so that every Project can track work using the stages that fit its real process.
 
 #### Acceptance Criteria
 
 1. THE Tracker SHALL allow a Project to have one Project Workflow.
-2. THE Tracker SHALL allow the User to select a predefined Workflow_Template when creating a Project.
-3. THE Tracker SHALL include a predefined Workflow_Template for GovTech libat urus / MyGOV onboarding with the following stages: Surat Permohonan Onboard, Sesi Libat Urus, Surat Permohonan Integrasi, Kelulusan, Perbincangan / Bengkel Teknikal, Bengkel SAF, Pembangunan, SIT, UAT, Go-Live.
-4. THE Tracker SHOULD allow additional Workflow_Templates such as Perolehan Kerajaan and GovTech Citizen Lab to be added without changing the core Task model.
-5. THE Tracker SHALL use the Project Workflow to initialize stages for every Task created inside that Project.
-6. THE Tracker SHALL preserve existing Task stages if the Project Workflow is later changed, unless a future migration/rebuild workflow feature is explicitly implemented.
-7. THE Tracker SHALL not require all Projects to use the same Workflow.
+2. THE Tracker SHALL allow the User to add Workflow Stages to the Project Workflow.
+3. THE Tracker SHALL allow the User to name each Workflow Stage.
+4. THE Tracker SHALL allow the User to order Workflow Stages.
+5. THE Tracker SHALL allow the User to edit Workflow Stage names and order before Tasks are created.
+6. THE Tracker SHALL require each Project Workflow to have at least one Stage before Tasks can be created.
+7. THE Tracker SHALL use the Project Workflow to initialize stages for every Task created inside that Project.
+8. THE Tracker SHALL preserve existing Task stages if the Project Workflow is later changed, unless a future migration/rebuild workflow feature is explicitly implemented.
+9. THE Tracker SHALL not require all Projects to use the same Workflow.
+10. THE Tracker MAY offer sample starter workflows later, but predefined templates SHALL NOT be required for the first MVP.
 
 ### Requirement 3: Create and Manage Tasks Within a Project
 
@@ -73,6 +76,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 4. THE Tracker SHALL allow a Project_User to update Task details inside a Project they can access.
 5. THE Tracker SHALL prevent Users who cannot access the Project from creating, viewing, or updating that Project's Tasks.
 6. THE Tracker SHALL NOT require a Task to be associated with an agency, ministry, company, or organisation.
+7. THE Tracker SHALL prevent Task creation when the parent Project has no Workflow Stages.
 
 ### Requirement 4: Initialize Task Workflow Stages
 
@@ -206,7 +210,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 5. THE Tracker SHALL prevent non-members from viewing, creating, updating, or deleting Project-scoped data.
 6. THE Tracker SHALL not require a global Admin role for normal v1 usage.
 7. THE Tracker SHALL allow a User to use the app alone with only Projects they own before any collaboration feature is used.
-8. This requirement is lower priority than the first single-user MVP flow: create Projects, choose/define Project Workflow, create Tasks, track progress, follow-up actions, document links, and history.
+8. This requirement is lower priority than the first single-user MVP flow: create Projects, build Project Workflow, create Tasks, track progress, follow-up actions, document links, and history.
 
 ---
 
@@ -216,9 +220,9 @@ The following have been clarified and incorporated into the requirements above:
 
 1. **Project-first and single-user-first access model**: EngageFlow uses a Project/workspace access model. The first MVP focuses on a User creating multiple Projects and managing Tasks alone. Collaboration through Project_Members is a lower-priority extension.
 
-2. **Project-level Workflow**: Each Project has its own Workflow. Tasks inside that Project are initialized from the Project Workflow. Different Projects may use different Workflows.
+2. **Project-level custom Workflow**: Each Project has its own user-built Workflow. Tasks inside that Project are initialized from the Project Workflow. Different Projects may use different Workflows.
 
-3. **Workflow Templates**: The first MVP should include at least the GovTech libat urus / MyGOV onboarding Workflow_Template. Additional templates such as Perolehan Kerajaan and GovTech Citizen Lab should be supported by the design without changing the core Task model.
+3. **Workflow Builder, not predefined templates**: Users build their Project Workflow by adding, naming, ordering, and editing stages. Starter workflows may be added later, but predefined templates are not required for the first MVP.
 
 4. **No global Admin role in v1**: Normal v1 usage does not require an application-wide Admin role. Access is scoped by Project ownership and, later, project membership.
 
@@ -250,4 +254,4 @@ The following have been clarified and incorporated into the requirements above:
 
 ## Open Questions
 
-No open questions remain for the v1 requirements after adopting the Project-first, Project Workflow, single-user-first, Task-based access model.
+No open questions remain for the v1 requirements after adopting the Project-first, custom Workflow Builder, single-user-first, Task-based access model.
