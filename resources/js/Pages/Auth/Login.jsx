@@ -1,11 +1,17 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck, faGlobe, faUserShield } from '@fortawesome/free-solid-svg-icons';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import GovMasthead from '@/Components/GovMasthead';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
+
+const guidanceItems = [
+    'Pantau status engagement kementerian dan agensi secara berstruktur.',
+    'Semak peringkat kerja, tindakan susulan dan status kelewatan dengan lebih jelas.',
+    'Akaun pengguna dicipta dan diuruskan oleh pentadbir EngageFlow.',
+];
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -44,7 +50,7 @@ export default function Login() {
                     </div>
                 </header>
 
-                <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+                <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
                     <div className="grid gap-14 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start">
                         <section className="max-w-md pt-1">
                             <p className="text-sm leading-5 text-gray-500">EngageFlow</p>
@@ -53,21 +59,41 @@ export default function Login() {
                                 Masukkan kelayakan anda untuk mengakses ruang kerja pemantauan engagement GovTech.
                             </p>
 
-                            <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
-                                <h2 className="text-sm font-semibold leading-5 text-gray-950">Akaun pengguna</h2>
-                                <p className="mt-1 text-sm leading-6 text-gray-600">
-                                    Akaun pengguna diuruskan oleh pentadbir EngageFlow.
-                                </p>
+                            <div className="mt-8 space-y-4 border-l-2 border-blue-100 pl-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                                        <FontAwesomeIcon icon={faUserShield} className="h-4 w-4" aria-hidden="true" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-semibold leading-5 text-gray-950">Ruang kerja dalaman</h2>
+                                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                                            Akses terhad kepada pegawai yang mempunyai akaun EngageFlow.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <ul className="space-y-3">
+                                    {guidanceItems.map((item) => (
+                                        <li key={item} className="flex gap-3 text-sm leading-6 text-gray-600">
+                                            <FontAwesomeIcon
+                                                icon={faCircleCheck}
+                                                className="mt-1 h-4 w-4 shrink-0 text-blue-600"
+                                                aria-hidden="true"
+                                            />
+                                            <span>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </section>
 
                         <section className="flex justify-center lg:justify-start">
                             <AuthCard>
-                                <div className="mb-6 text-center">
+                                <div className="mb-5 text-center">
                                     <h2 className="text-[22px] font-semibold leading-8 tracking-tight text-gray-950">
                                         Log masuk ke EngageFlow
                                     </h2>
-                                    <p className="mt-2 text-sm leading-5 text-gray-500">
+                                    <p className="mt-1.5 text-sm leading-5 text-gray-500">
                                         Sila masukkan butiran akaun anda.
                                     </p>
                                 </div>
