@@ -12,15 +12,13 @@ export default function GovMasthead() {
                 <button
                     type="button"
                     onClick={() => setIsOpen((current) => !current)}
-                    className="inline-flex h-9 max-w-full items-center gap-1.5 text-xs font-medium leading-[18px] text-gray-950 hover:text-gray-800 sm:gap-2"
+                    className="inline-flex h-9 max-w-full items-center gap-1.5 overflow-hidden text-xs font-medium leading-[18px] text-gray-950 hover:text-gray-800 sm:gap-2"
                     aria-expanded={isOpen}
                     aria-controls="gov-masthead-panel"
                 >
                     <MalaysiaFlag />
-                    <span className="whitespace-nowrap sm:hidden">Portal Rasmi</span>
-                    <span className="hidden whitespace-nowrap sm:inline">Portal Rasmi Kerajaan Malaysia</span>
-                    <span className="whitespace-nowrap text-blue-700 sm:hidden">Info</span>
-                    <span className="hidden whitespace-nowrap text-blue-700 sm:inline">Ketahui Lebih Lanjut</span>
+                    <span className="shrink-0 whitespace-nowrap">Portal Rasmi</span>
+                    <span className="shrink-0 whitespace-nowrap text-blue-700">Ketahui Lanjut</span>
                     <FontAwesomeIcon
                         icon={faChevronDown}
                         className={
