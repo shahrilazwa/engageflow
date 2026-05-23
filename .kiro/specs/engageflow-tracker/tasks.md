@@ -29,6 +29,12 @@ The Visual Workflow Builder and `WorkflowCanvas` are core v1 functionality. They
 - Use Eloquent ORM and Laravel Query Builder.
 - Use Laravel session auth for v1.
 - Use Laravel Policies for authorization.
+- Use Inertia React pages for application screens.
+- Use Blade only for the root Inertia view, normally `resources/views/app.blade.php`.
+- Do not create Blade pages, Blade layouts, or Blade components for app screens.
+- Build frontend UI in lego-style reusable React components.
+- Avoid giant page components that mix layout, data display, forms, workflow canvas logic, and business rules in one file.
+- Keep WorkflowCanvas, WorkflowNode, WorkflowEdge, WorkflowStepInspector, WorkflowToolbar, TaskProgressTimeline, TaskCard, DeliverableList, DocumentLinkList, and shared UI components separated by responsibility.
 - Do not introduce Prisma in v1.
 - Do not rewrite to Next.js or Nuxt in v1.
 - Do not introduce Keycloak/OIDC/SSO in v1.
@@ -108,6 +114,8 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] `docs/deliverables.md` exists
     - [ ] `docs/architecture.md` headings mention PostgreSQL JSONB and WorkflowCanvas
     - [ ] `docs/project-structure.md` headings mention WorkflowBuilder and WorkflowCanvas components/actions
+    - [ ] `docs/project-structure.md` documents lego-style React component expectations
+    - [ ] `docs/project-structure.md` documents that Blade is only for the root Inertia view
     - [ ] `docs/workflow-status.md` headings mention TaskWorkflowStep snapshots
     - [ ] `docs/user-guide.md` headings mention Projects, Visual Workflows, Tasks, Deliverables, and Dashboard
     - [ ] README links include all required docs
@@ -135,6 +143,8 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Project index screen lists only Projects owned by the current User
     - [ ] Project create screen allows name and optional description
     - [ ] Project update action allows owner to update name and description
+    - [ ] Project screens are Inertia React pages, not Blade pages
+    - [ ] Project UI uses reusable React components instead of one large page component
     - [ ] Non-owner access returns 404 or 403 according to project access guardrail
   - Test expectation: Feature tests for create Project, list owned Projects only, update own Project, block access to another user's Project.
   - Documentation expectation: None beyond existing docs skeleton.
@@ -217,6 +227,8 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Inertia page `Pages/Workflows/Builder.tsx` exists
     - [ ] Page uses authenticated layout
     - [ ] Page receives workflow definition as props
+    - [ ] Page is not implemented as a Blade view
+    - [ ] Page composes reusable React components instead of containing the whole builder in one file
     - [ ] Dashboard or Project screen includes link/button to open Workflow Builder
     - [ ] Non-owner access is blocked
   - Test expectation: Feature tests for owner can open builder and non-owner cannot.
@@ -239,6 +251,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Canvas state is isolated from Task and Dashboard components
     - [ ] WorkflowCanvas does not update TaskWorkflowStep status
     - [ ] Existing saved workflow layout can be rendered on page load
+    - [ ] Components are lego-style and separated by responsibility
   - Test expectation: Component-level tests if the frontend test setup exists; otherwise manual verification and backend feature tests in Task 11.
   - Documentation expectation: Add component notes to `docs/project-structure.md` later.
 
@@ -257,6 +270,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] `WorkflowToolbar.tsx` exists
     - [ ] Toolbar includes Add Stage and Save actions
     - [ ] Toolbar can expose Fit View or Reset Layout if simple
+    - [ ] Inspector and toolbar are separate reusable components
     - [ ] When Tasks exist, structural controls are disabled or read-only
     - [ ] UI explains layout-only editing after Tasks exist
   - Test expectation: Manual visual verification unless frontend test tooling exists.
@@ -282,6 +296,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Save is rejected if workflow has zero mandatory nodes
     - [ ] After Tasks exist, layout-only changes save successfully
     - [ ] After Tasks exist, structural changes are rejected
+    - [ ] WorkflowCanvas remains a real canvas-like surface, not just a styled table or form
   - Test expectation: Feature tests for save/reload JSONB, invalid workflow rejection, layout-only update after Tasks exist, structural update rejection after Tasks exist. Unit tests for WorkflowCanvas state-to-JSON mapping if practical.
   - Documentation expectation: Update `docs/workflow-builder.md` later.
 
@@ -306,6 +321,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Task title and description can be updated by authorized User
     - [ ] Target completion date can be set
     - [ ] Month/year input can be converted to last day of that month
+    - [ ] Task screens are Inertia React pages, not Blade pages
     - [ ] Non-owner cannot access another user's Tasks
   - Test expectation: Feature tests for Task create/list/update/access denial. Unit tests for month-end target date conversion including leap year and non-leap year February.
   - Documentation expectation: None.
@@ -388,6 +404,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] TaskProgressTimeline displays TaskWorkflowSteps and statuses
     - [ ] Optional steps are visually distinguishable
     - [ ] Status update controls are available outside WorkflowCanvas
+    - [ ] Task UI is built from reusable components such as TaskCard and TaskProgressTimeline
     - [ ] UI is clean, white-based, and consistent with existing MYDS-inspired app shell
   - Test expectation: Feature test for Inertia props. Manual visual verification for timeline and responsive layout.
   - Documentation expectation: None.
@@ -409,6 +426,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Dashboard includes link/button to open Visual Workflow Builder
     - [ ] Dashboard does not mix counts across Projects
     - [ ] Dashboard uses Task, TaskWorkflowStep, TaskDeliverable, and FollowUpAction tables for counts
+    - [ ] Dashboard UI is built from reusable React components such as DashboardSummaryCards, TaskCard, and shared badges
   - Test expectation: Unit tests for dashboard count service. Feature test for dashboard Inertia props and Project scoping.
   - Documentation expectation: None.
 
@@ -433,6 +451,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Overdue deliverable rule: due_date < today and status Pending or In_Progress
     - [ ] Deliverable status changes create AuditEntry
     - [ ] Dashboard includes pending/in-progress Deliverables and overdue Deliverables
+    - [ ] Deliverable UI is built from reusable React components such as DeliverableList and DeliverableTypeBadge
   - Test expectation: Feature tests for create/update/status/access. Unit tests for overdue deliverable calculation and deliverable completion calculation. Audit test for status change.
   - Documentation expectation: Update `docs/deliverables.md` later.
 
@@ -452,6 +471,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] Overdue rule: due_date < today and status not Done or Cancelled
     - [ ] Follow-up status changes create AuditEntry
     - [ ] Dashboard includes overdue Follow-Up Actions
+    - [ ] Follow-up UI is built from reusable React components, not one-off page-only markup
   - Test expectation: Feature tests for create/update/status/access. Unit tests for overdue follow-up calculation. Audit test for status change.
   - Documentation expectation: None.
 
@@ -472,6 +492,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] URL validation is enforced
     - [ ] Links open in a new browser tab
     - [ ] Access is checked through the parent Project
+    - [ ] Document link UI is built as reusable React components such as DocumentLinkList
     - [ ] No file upload is implemented
   - Test expectation: Feature tests for create/list/delete links for each allowed parent type and access denial across Projects.
   - Documentation expectation: Update `docs/deliverables.md` and `docs/user-guide.md` later.
@@ -574,6 +595,7 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] `docs/architecture.md` documents Laravel/Inertia/PostgreSQL/JSONB architecture
     - [ ] `docs/architecture.md` explains JSONB workflow definition vs relational operational data
     - [ ] `docs/project-structure.md` documents backend actions/policies/models and frontend WorkflowCanvas components
+    - [ ] `docs/project-structure.md` documents lego-style component rules and Blade root-only rule
     - [ ] `docs/setup.md` documents PostgreSQL Docker setup
     - [ ] `docs/ci.md` documents GitHub Actions CI
   - Test expectation: No automated tests.
@@ -615,6 +637,8 @@ Important: because the product model changed after these baseline tasks, several
     - [ ] No stale Agency Owner, Service, Special Project, global Admin, Keycloak, Spatie, Prisma, Next/Nuxt, MongoDB, or automation-engine wording remains in user-facing UI/docs
     - [ ] WorkflowCanvas is clearly design-time only
     - [ ] Task status updates happen outside WorkflowCanvas
+    - [ ] Frontend app screens use Inertia React, not Blade pages
+    - [ ] Frontend UI uses lego-style reusable React components
     - [ ] Dashboard counts are Project-scoped
     - [ ] Cross-project access isolation is tested
   - Test expectation: Full CI must pass.
@@ -628,5 +652,8 @@ Important: because the product model changed after these baseline tasks, several
 - Do not implement a fake visual builder as only a table/form. WorkflowCanvas must be a real design-time surface for nodes and simple edges, even if v1 logic is still ordered stages.
 - Do not implement automation, branching, connectors, hooks, or external integrations in v1.
 - Do not use the WorkflowCanvas as the Task status update screen.
+- Do not create Blade pages, Blade layouts, or Blade components for app screens. Blade is only allowed as the root Inertia view.
+- Build frontend screens using lego-style reusable React components with clear responsibilities.
+- Avoid giant React page files that contain all layout, forms, canvas, list rendering, and business logic in one place.
 - Keep implementation in small PRs and stop after each task's acceptance checklist is satisfied.
 - When uncertain, requirements.md and design.md are the source of truth.
