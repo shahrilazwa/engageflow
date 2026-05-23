@@ -33,41 +33,169 @@ The system is built as a **modular monolith** for v1. Module boundaries are clea
 
 ## Architecture
 
-### Style: Modular Monolith
+### Style: Layered Modular Monolith
 
-The application is a single deployable Laravel application with clearly separated internal modules. Controllers stay thin. Business rules live in service/action classes. Policies enforce Project access. Events/listeners handle audit history.
+EngageFlow is a single Laravel application using a layered modular monolith architecture. The app is not split into microservices in v1. Instead, the codebase is organised around feature modules with clear responsibilities and predictable dependencies.
+
+The architecture should be easy for a Laravel developer to understand and maintain:
 
 ```text
-Web Layer: Routes / Controllers / Inertia
-    ↓
-Application Modules:
-    ProjectManagement
-    WorkflowBuilder
-    TaskTracking
-    WorkflowStageTracking
-    FollowUpActionTracking
-    DocumentLinkTracking
-    Dashboard
-    AuthUserAccess
-    AuditHistoryTracking
-    ProjectMembership  // future extension
-    ↓
-Data Layer: Eloquent ORM / MySQL
+Inertia React Pages / Components
+        ↓
+Laravel Routes
+        ↓
+HTTP Controllers
+        ↓
+Form Requests + Policies
+        ↓
+Service / Action Classes
+        ↓
+Eloquent Models + Database Transactions
+        ↓
+Events / Listeners for side effects
+        ↓
+MySQL
 ```
 
-### Technology Stack
+### Request Flow
 
-| Layer | Choice | Notes |
+A normal write request should follow this flow:
+
+```text
+React form submits through Inertia
+→ Controller receives request
+→ Form Request validates input
+→ Policy checks project access
+→ Service/Action performs business operation inside transaction if needed
+→ Event is fired for audit/history side effects if needed
+→ Controller redirects or returns Inertia response
+```
+
+A normal read request should follow this flow:
+
+```text
+React page requests route
+→ Controller checks policy/access
+→ Service queries project-scoped data
+→ Controller returns Inertia page props
+→ React components render the page
+```
+
+### Application Layers
+
+| Layer | Responsibility | Guardrail |
 |---|---|---|
-| Language | PHP 8.4 | Minimum version |
-| Framework | Laravel | Eloquent, policies, events, migrations, session auth |
-| Frontend | Inertia.js + React | SPA-like experience without a separate frontend app |
-| Styling | Tailwind CSS | Utility-first styling; use carefully with MYDS |
-| Design System | MYDS | Primary design reference where practical |
-| Icons | FontAwesome | Consistent icon usage across the UI |
-| Database | MySQL | Avoid database-specific tricks in v1 |
-| Auth | Laravel session-based auth | No external OAuth in v1 |
-| Testing | PestPHP | Unit, feature, and selected property-style tests |
+| Inertia React UI | Pages, layouts, forms, reusable components | No business rules beyond basic UI state |
+| Routes | Map URLs to controllers | Keep route files readable and grouped by feature |
+| Controllers | Orchestrate validation, authorization, service calls, Inertia responses | Keep thin; do not place business logic here |
+| Form Requests | Validate input | Reusable validation rules where useful |
+| Policies | Enforce Project ownership/membership access | Never rely only on hidden UI controls |
+| Services/Actions | Core business rules and transactions | Main home for project/workflow/task logic |
+| Models | Eloquent relationships, casts, simple computed helpers | Avoid fat models for complex workflows |
+| Events/Listeners | Audit/history and future side effects | Do not block core operations with unrelated side effects |
+| Database | MySQL persistence | Migrations are append-only after merge |
+
+### Backend Organisation
+
+Use Laravel conventions, but keep feature code grouped clearly. A practical structure is:
+
+```text
+app/
+  Http/
+    Controllers/
+      Projects/
+      Workflows/
+      Tasks/
+      FollowUps/
+      Documents/
+      Dashboard/
+    Requests/
+      Projects/
+      Workflows/
+      Tasks/
+      FollowUps/
+      Documents/
+  Models/
+    User.php
+    Project.php
+    ProjectWorkflow.php
+    ProjectWorkflowStage.php
+    Task.php
+    TaskWorkflowStage.php
+    FollowUpAction.php
+    DocumentLink.php
+    AuditEntry.php
+  Policies/
+    ProjectPolicy.php
+    TaskPolicy.php
+    TaskWorkflowStagePolicy.php
+    FollowUpActionPolicy.php
+    DocumentLinkPolicy.php
+  Services/
+    Projects/
+    Workflows/
+    Tasks/
+    FollowUps/
+    Documents/
+    Dashboard/
+    Audit/
+  Events/
+  Listeners/
+```
+
+A strict `app/Modules` structure is not required if it makes normal Laravel development harder. The important rule is clear feature grouping, thin controllers, project-scoped policies, and service/action classes for business logic.
+
+### Frontend Organisation
+
+Use the existing Inertia React stack. Application screens must be React/Inertia, not Blade.
+
+```text
+resources/js/
+  Layouts/
+    AuthenticatedLayout.tsx
+  Pages/
+    Dashboard/
+    Projects/
+    Workflows/
+    Tasks/
+  Components/
+    Projects/
+    Workflows/
+    Tasks/
+    FollowUps/
+    Documents/
+    Shared/
+```
+
+Frontend guardrails:
+
+- Pages compose reusable components.
+- Components should be lego-style and reusable.
+- Keep Project, Workflow, Task, Follow-Up, Document, and Dashboard components grouped by feature.
+- Avoid one giant dashboard component.
+- UI may hide unavailable actions, but backend policies must still enforce access.
+
+### Data Ownership and Access Scope
+
+Project is the main ownership boundary.
+
+```text
+User owns Project
+Project owns Workflow
+Project owns Tasks
+Task owns TaskWorkflowStages
+Task owns FollowUpActions
+Task/Stage/FollowUpAction own DocumentLinks
+Project owns AuditEntries through related activity
+```
+
+All queries must be scoped through the selected Project. Do not query Tasks, Stages, Follow-Up Actions, Document Links, or Audit Entries globally unless a future cross-project dashboard is explicitly designed.
+
+### Future API Readiness
+
+The first MVP uses Inertia React. JSON APIs are not required for the first MVP, but the service/action layer should make future API controllers possible without rewriting business logic.
+
+Do not build a separate API layer now unless required by a task. The priority is a clean web app with reusable backend services.
 
 ---
 
@@ -95,6 +223,22 @@ Cross-module rules:
 - `Dashboard` reads from Project, Task, Stage, Follow-Up, and Document modules through service/action classes.
 - `AuditHistoryTracking` listens to status-change events and writes audit records.
 - `ProjectMembership` is lower priority and should not be built before the single-user Project/Task workflow is complete.
+
+---
+
+## Technology Stack
+
+| Layer | Choice | Notes |
+|---|---|---|
+| Language | PHP 8.4 | Minimum version |
+| Framework | Laravel | Eloquent, policies, events, migrations, session auth |
+| Frontend | Inertia.js + React | SPA-like experience without a separate frontend app |
+| Styling | Tailwind CSS | Utility-first styling; use carefully with MYDS |
+| Design System | MYDS | Primary design reference where practical |
+| Icons | FontAwesome | Consistent icon usage across the UI |
+| Database | MySQL | Avoid database-specific tricks in v1 |
+| Auth | Laravel session-based auth | No external OAuth in v1 |
+| Testing | PestPHP | Unit, feature, and selected property-style tests |
 
 ---
 
