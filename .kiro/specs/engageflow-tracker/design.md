@@ -1,993 +1,1320 @@
 # Design Document: EngageFlow Tracker
 
-## Overview
+## 1. Purpose
 
-EngageFlow is an internal web application for tracking team workstreams and progress. The v1 use case is the GovTech engagement team's ministry/agency service onboarding workflow for MyGOV, replacing a manual Excel tracker with a structured, role-based system that provides graphical progress views, workflow stage tracking, follow-up action management, and audit history.
+EngageFlow is a Laravel + Inertia React application for visually designing project workflows and tracking work against those workflows.
 
-The system is built as a **modular monolith** for v1. Module boundaries are drawn clearly so individual modules can be extracted into separate services later if needed. There are no microservices in v1.
+The v1 product is **project-first**, **workflow-first**, **visual-builder-first**, and **single-user-first**. A user can create multiple Projects, visually design the workflow for each Project, create Tasks inside the Project, record expected Deliverables for each Task, and track progress through visual workflow steps, dashboards, follow-up actions, document links, and status history.
 
-### Key Design Goals
+The **Visual Workflow Builder** and its **WorkflowCanvas** are core v1 features. They are not future enhancements. The first MVP must support visual creation of an ordered stage workflow using a canvas-like interface. The visual builder does not need automation, branching rules, runtime actions, hooks, connectors, or integrations in v1.
 
-- Replace the Excel tracker with a structured, searchable, visual tool
-- Keep the domain model close to how the team already thinks (Agency Owner → Service → Workflow Stages)
-- Support Special Projects as a lightweight parallel track
-- Provide clear visual progress indicators without over-engineering the UI
-- Maintain a full audit trail for stage and follow-up action changes
-- Support role-based access with minimal complexity for v1
+Core v1 model:
 
----
-
-## Architecture
-
-### Style: Modular Monolith
-
-The application is a single deployable unit with clearly separated internal modules. Each module owns its own models, services, and routes. Cross-module communication uses Eloquent relationships and service classes directly — no formal interface contracts are required in v1.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Web Layer                            │
-│         (HTTP Routes / Inertia Controllers)                 │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────┐
-│                     Application Modules                     │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ Agency Owner │  │   Service    │  │ Workflow / Stage  │  │
-│  │  Management  │  │  Tracking    │  │    Tracking       │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │  Follow-Up   │  │   Document   │  │ Special Project  │  │
-│  │   Actions    │  │    Links     │  │    Tracking       │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │  Dashboard / │  │  User & Role │  │  Audit / History │  │
-│  │ Progress View│  │    Access    │  │    Tracking       │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────┐
-│                     Data Layer (Eloquent ORM)               │
-│                  Relational Database (MySQL)                 │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Technology Stack
-
-| Layer | Choice | Notes |
-|---|---|---|
-| **Language** | PHP 8.4 | Minimum version |
-| **Framework** | Laravel (latest stable for PHP 8.4) | Eloquent, policies, events, migrations |
-| **Frontend** | Inertia.js + React (latest stable) | SPA-like experience without a separate API |
-| **Styling** | Tailwind CSS (latest stable) | Utility-first, consistent with MYDS |
-| **Design System** | MYDS (Malaysia Digital Services, by GovTech Malaysia) | Primary design system where practical |
-| **Icons** | FontAwesome (latest stable) | Consistent icon usage across the UI |
-| **Database** | MySQL (preferred) | Avoid database-specific features in v1 |
-| **Queue Driver** | Redis | Future-ready; not used in v1 |
-| **Auth** | Laravel session-based auth | Internal app; no external OAuth in v1 |
-| **Testing** | PestPHP | Unit, feature, and selected property-style tests |
-
-**Version policy**: Use the latest stable release of each package. Avoid experimental, beta, or release-candidate versions.
-
-
----
-
-### API-First Modular Monolith
-
-The app is a single Laravel modular monolith in v1. It uses an **API-first** approach: backend business logic lives in service/action classes that can be called by both Inertia controllers (for the web frontend) and JSON API controllers (for future clients such as a mobile app).
-
-**Key principles:**
-- The Inertia React web frontend is the primary v1 client.
-- Where practical, expose clean JSON endpoints for core data and actions so the backend can support a future mobile client without a rewrite.
-- JSON-style endpoints should be considered for: dashboard data, service list/search/filter, workflow stage updates, follow-up actions, document links, and status updates.
-- Backend business logic lives in service/action classes. Both Inertia controllers and future API controllers reuse the same service layer.
-- Backend modules do NOT call each other through HTTP inside the same application. Use direct service/action calls and Eloquent relationships within the monolith.
-- Use events/listeners for decoupled side effects such as audit history.
-- Keep request/response shapes clean and explicit so modules can be extracted into separate services later if needed.
-
-**Not in v1:**
-- No microservices.
-- No API gateway, service discovery, distributed auth, or inter-service networking.
-- No mobile app or mobile-specific authentication (unless required).
-
-**Future mobile-readiness:**
-- Keep the design compatible with future Laravel Sanctum token authentication for mobile/API access.
-- Inertia pages are for the web client. A future mobile client should consume JSON APIs.
-- The design allows future mobile usage without forcing mobile scope into v1.
-
-**Future extraction:**
-- Module boundaries are clear enough that selected modules could be converted into microservices later if there is a real operational need (scale, ownership, deployment, or integration).
-- Future extraction is driven by real need, not by v1 architecture preference.
-- Do not design microservices now.
-
-
----
-
-## Modular Boundaries
-
-Each module is a Laravel-style bounded context under `app/Modules/{ModuleName}/`, containing its own Models, Services, Policies, Events, Listeners, and HTTP controllers. Normal Laravel conventions apply: Eloquent models, form requests, policies, and service/action classes where useful. No repository layer or strict interface contracts are required in v1.
-
-| Module | Responsibility |
-|---|---|
-| **AgencyOwnerManagement** | CRUD for Agency Owners |
-| **ServiceTracking** | CRUD for Services, target completion, delayed flag |
-| **WorkflowStageTracking** | Stage status updates, active stage logic, completion dates |
-| **FollowUpActionTracking** | Follow-up action CRUD, overdue detection |
-| **DocumentLinkTracking** | Polymorphic document link CRUD |
-| **SpecialProjectTracking** | Special project CRUD, status, target date |
-| **Dashboard** | Aggregated progress view, summary counts, search, filter |
-| **UserRoleAccess** | User management, role assignment, authentication |
-| **AuditHistoryTracking** | Recording and querying change history |
-
-**Cross-module rules:**
-- Modules may read each other's data through Eloquent relationships and service classes directly.
-- Events are used for decoupled side effects: `StageStatusChanged` and `FollowUpActionStatusChanged` events trigger the `AuditHistoryListener`.
-- The Dashboard module aggregates data from other modules via their service classes.
-- No formal interface contracts are required in v1. Extract and formalize boundaries if/when modules are split out.
-
-**v1 entity naming note:** The module and entity names (AgencyOwner, Service, WorkflowStage, etc.) reflect the GovTech/MyGOV onboarding use case. In the generic model, these map to: stakeholder/owner → tracked work item → workflow stages. The v1 implementation uses the GovTech-specific names because this is the first configured use case. Future versions may introduce configurable entity labels.
-
----
-
-## Components and Interfaces
-
-### Service Layer Pattern
-
-Each module exposes a service class as its primary interface. Controllers call services; services call Eloquent models and fire events.
-
-```
-Controller → Service → Eloquent Model
-                    ↘ Event → Listener (audit recording; future: notifications)
-```
-
-### Key Service Classes
-
-**AgencyOwnerService**
-- `create(name): AgencyOwner`
-- `list(): Collection`
-- `find(id): AgencyOwner`
-
-**ServiceTrackingService**
-- `register(name, agencyOwnerId, targetCompletion?): Service`
-- `setTargetCompletion(serviceId, date): Service`
-- `list(filters): Collection`
-- `find(id): Service`
-
-**WorkflowStageService**
-- `updateStatus(serviceId, stageId, status, user): WorkflowStage`
-- `getActiveStage(serviceId): WorkflowStage|null`
-- `getStagesForService(serviceId): Collection`
-
-**FollowUpActionService**
-- `create(parentType, parentId, data): FollowUpAction`
-- `update(id, data, user): FollowUpAction`
-- `listOverdue(): Collection`
-
-**DocumentLinkService**
-- `attach(parentType, parentId, url, label?): DocumentLink`
-- `getFor(parentType, parentId): Collection`
-- `remove(id): void`
-
-**SpecialProjectService**
-- `create(data): SpecialProject`
-- `update(id, data): SpecialProject`
-- `list(): Collection`
-
-**DashboardService**
-- `getSummary(): array`
-- `getProgressView(filters): Collection`
-- `search(query): Collection`
-
-**AuditHistoryService**
-- `record(entityType, entityId, field, previousValue, newValue, user): AuditEntry`
-- `getHistoryFor(entityType, entityId): Collection`
-
-### Events and Listeners
-
-| Event | Fired By | Listener | Action |
-|---|---|---|---|
-| `StageStatusChanged` | WorkflowStageService | AuditHistoryListener | Record stage status change |
-| `FollowUpActionStatusChanged` | FollowUpActionService | AuditHistoryListener | Record follow-up status change |
-
-This keeps audit recording decoupled from business logic. Additional listeners (e.g., future notifications) can be added without modifying the service.
-
-### Authorization (Policies)
-
-Laravel Policies are used per entity:
-
-| Policy | Admin | Lead | Member |
-|---|---|---|---|
-| Manage users/roles | ✓ | — | — |
-| Create/update Agency Owner | ✓ | ✓ | ✓ |
-| Create/update Service | ✓ | ✓ | ✓ |
-| Update Stage Status | ✓ | ✓ | ✓ |
-| Create/update Follow-Up Action | ✓ | ✓ | ✓ |
-| Create/update Special Project | ✓ | ✓ | ✓ |
-| View all data | ✓ | ✓ | ✓ |
-
-
----
-
-## Data Models
-
-These are conceptual entities and their relationships. No DDL is included here.
-
-### Entity Overview
-
-```
-Agency_Owner
-  └── has many → Service
-                   └── has one → Workflow (10 fixed stages)
-                                   └── WorkflowStage (status, completion date)
-                   └── has many → Follow_Up_Action
-                   └── has many → Document_Link
-                   └── WorkflowStage → has many → Document_Link
-
-Special_Project
-  └── has many → Follow_Up_Action
-  └── has many → Document_Link
-
-Follow_Up_Action
-  └── has many → Document_Link
-
+```text
 User
-  └── has one → Role (Admin | Lead | Member)
-
-AuditEntry
-  └── polymorphic → WorkflowStage | Follow_Up_Action
+└── Project
+    ├── Visual Workflow Definition (PostgreSQL JSONB)
+    │   ├── Workflow nodes
+    │   ├── Workflow edges
+    │   ├── Node positions
+    │   └── Viewport/layout metadata
+    └── Tasks
+        ├── Task Workflow Steps (relational progress snapshot)
+        ├── Task Deliverables
+        ├── Follow-Up Actions
+        ├── Document Links
+        └── Status History
 ```
 
-### Entity Descriptions
-
-**Agency_Owner**
-- `id`, `name`, timestamps
-
-**Service**
-- `id`, `name`, `agency_owner_id` (FK), `target_completion_date` (nullable), timestamps
-- Delayed status is computed on read (not stored as a mutable flag in v1)
-- One active workflow per service in v1
-
-**WorkflowStage**
-- `id`, `service_id` (FK), `stage_order` (1–10), `stage_name` (fixed), `status` (Pending | In_Progress | Completed | KIV | Not_Applicable | Blocked | To_Be_Confirmed), `completed_at` (nullable), timestamps
-- 10 rows created automatically when a Service is registered
-- Stage names are fixed: Surat Permohonan Onboard, Sesi Libat Urus, Surat Permohonan Integrasi, Kelulusan, Perbincangan / Bengkel Teknikal, Bengkel SAF, Pembangunan, SIT, UAT, Go-Live
-
-**Special_Project**
-- `id`, `title`, `status`, `target_date` (nullable), timestamps
-- No workflow stages; tracked independently
-
-**Follow_Up_Action**
-- `id`, `title`, `due_date`, `status` (Open | In_Progress | Done | Cancelled), `remarks` (nullable), `actionable_type` (polymorphic: Service | Special_Project), `actionable_id`, timestamps
-- Overdue: computed on read — `due_date < today` AND `status NOT IN (Done, Cancelled)`
-
-**Document_Link**
-- `id`, `url`, `label` (nullable), `linkable_type` (polymorphic: Service | WorkflowStage | Special_Project | Follow_Up_Action), `linkable_id`, timestamps
-
-**User**
-- `id`, `name`, `email`, `password` (hashed), `role` (Admin | Lead | Member), timestamps
-
-**AuditEntry**
-- `id`, `auditable_type` (WorkflowStage | Follow_Up_Action), `auditable_id`, `field_changed` (e.g., "status"), `previous_value`, `new_value`, `changed_by_user_id` (FK), `changed_at`, timestamps
-
-### Key Relationships
-
-- Agency_Owner → Service: one-to-many
-- Service → WorkflowStage: one-to-many (always exactly 10, created on registration)
-- Service → Follow_Up_Action: polymorphic one-to-many
-- Special_Project → Follow_Up_Action: polymorphic one-to-many
-- Service → Document_Link: polymorphic one-to-many
-- WorkflowStage → Document_Link: polymorphic one-to-many
-- Special_Project → Document_Link: polymorphic one-to-many
-- Follow_Up_Action → Document_Link: polymorphic one-to-many
-- WorkflowStage → AuditEntry: polymorphic one-to-many
-- Follow_Up_Action → AuditEntry: polymorphic one-to-many
-
+If a user needs to track a different stream of work, they create another Project. Flexibility inside a Project is handled by the visual workflow definition and mandatory/optional workflow steps.
 
 ---
 
-## Correctness Properties
+## 2. Architecture Decisions
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+### 2.1 Agreed Stack
 
-**Property reflection notes**: After prework analysis, the following consolidations were applied:
-- Requirements 2.2 and 2.3 are combined into Property 1 (stage count, order, and initial status are one invariant).
-- Requirements 4.2 and 7.1 both describe the delayed flag — covered by Property 4.
-- Requirements 10.1, 10.2, and 10.3 are combined into Property 7 (document link round-trip).
-- Requirements 6.1–6.4 are combined into Property 12 (dashboard summary consistency).
-- Requirements 11.3 and 11.4 are combined into Property 13 (role-based authorization).
-- Requirements 3.1 and 3.2 are combined into Property 2 (stage status update correctness).
+| Area | Decision | Notes |
+|---|---|---|
+| Backend framework | Laravel | Keep Laravel for MVP; it fits auth, policies, actions, migrations, tests, and dashboard workflows |
+| Frontend | Inertia.js + React | Required because the visual workflow builder needs a rich React UI |
+| Visual workflow UI | React-based WorkflowCanvas | Core v1 feature, not a future enhancement |
+| Database | PostgreSQL | Replaces MySQL because workflow definitions benefit from JSONB |
+| Workflow definition storage | PostgreSQL JSONB | Source of truth for visual Project workflow design and layout |
+| Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, deliverables, and audit data stay relational |
+| ORM / data access | Eloquent ORM + Query Builder | Laravel-native; do not introduce Prisma in v1 |
+| Authentication | Laravel session auth | Do not introduce Keycloak in v1 |
+| Authorization | Laravel Policies | Do not introduce Spatie Permission in v1 |
+| Styling | Tailwind CSS + MYDS-inspired components | White-based, clean, componentised UI |
+| Tests | PestPHP | Feature, unit, and selected property-style tests |
+| Local dev | Docker Compose | Container-first development |
 
----
+### 2.2 Explicit Non-Decisions for v1
 
-### Property 1: Service registration initializes exactly 10 stages
+Do not introduce these in the first MVP:
 
-*For any* valid service registration, the resulting service SHALL have exactly 10 workflow stages, one for each fixed stage name, in the correct order (1–10), all initialized to Pending status.
+- Prisma.
+- Next.js or Nuxt rewrite.
+- Keycloak / OIDC / SSO.
+- Spatie Laravel Permission.
+- MongoDB or full NoSQL storage.
+- Separate public API.
+- Microservices.
+- Workflow automation engine.
+- Branching workflow execution.
+- Conditional transitions.
+- Runtime actions, connectors, webhooks, or hooks.
+- File upload or document repository integration.
 
-**Validates: Requirements 2.2, 2.3**
-
----
-
-### Property 2: Stage status update is always reflected
-
-*For any* service and any of its 10 stages, updating the stage status to a valid status value SHALL result in that stage reflecting the new status when queried, regardless of the status of other stages.
-
-**Validates: Requirements 3.1, 3.2**
-
----
-
-### Property 3: Completed stage records completion date
-
-*For any* stage that is updated to Completed status, the stage SHALL have a non-null completion date recorded at the time of the update.
-
-**Validates: Requirements 3.3**
-
----
-
-### Property 4: Delayed flag correctness
-
-*For any* service with a target completion date, the service SHALL be computed as delayed if and only if the current date exceeds the target completion date AND the Go-Live stage is not Completed.
-
-**Validates: Requirements 4.2, 7.1**
+These may be reconsidered later only when the product need is real.
 
 ---
 
-### Property 5: Month-only target uses last day of month
+## 3. Product Scope
 
-*For any* month/year input for target completion, the stored target completion date SHALL be the last calendar day of that month (including correct handling of February in leap and non-leap years).
+### 3.1 In Scope for v1
 
-**Validates: Requirements 4.4**
+- User can log in using Laravel session authentication.
+- User can create and manage multiple Projects.
+- Each Project has one Visual Workflow Definition stored as JSONB.
+- User can visually create and edit a Project Workflow using the WorkflowCanvas inside the Visual Workflow Builder.
+- WorkflowCanvas supports ordered stage-style workflows for v1.
+- User can add workflow stage nodes.
+- User can edit workflow stage labels.
+- User can mark workflow stage nodes as Mandatory or Optional.
+- User can drag/reposition workflow nodes visually.
+- User can reorder the workflow stage sequence before Tasks exist.
+- WorkflowCanvas shows simple edges/connectors between ordered workflow stage nodes.
+- WorkflowCanvas stores node position and viewport data in JSONB so the visual layout can be restored later.
+- After Tasks exist, WorkflowCanvas allows layout-only changes and blocks structural workflow changes in v1.
+- User can create Tasks only after the Project workflow has at least one mandatory workflow node.
+- Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
+- User can update Task Workflow Step status outside the WorkflowCanvas.
+- User can set a target completion date for a Task.
+- User can record Task Deliverables such as documents, slide decks, spreadsheets, Figma/design files, repository links, URLs, or other outputs.
+- Dashboard shows Project-scoped progress, delayed Tasks, overdue Follow-Up Actions, pending Deliverables, and overdue Deliverables.
+- User can add Follow-Up Actions to Tasks.
+- User can add external Document Links to Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
+- Status changes are recorded in Audit Entries.
+- Project access is owner-only in the first MVP.
 
----
+### 3.2 Future Extensions, Not v1
 
-### Property 6: Follow-up action overdue flag correctness
+- Project members and collaboration.
+- Cross-project dashboard.
+- Starter workflow library.
+- Workflow migration/rebuild for existing Tasks after structural workflow changes.
+- Branching workflow paths.
+- Condition rules.
+- Runtime actions.
+- External connectors.
+- Webhooks or extension hooks.
+- Notifications.
+- File uploads.
+- External document repository integration.
+- Mobile app or public API.
+- Keycloak/OIDC SSO.
+- Spatie-powered RBAC.
 
-*For any* follow-up action, the action SHALL be computed as overdue if and only if the current date exceeds the due date AND the status is neither Done nor Cancelled.
-
-**Validates: Requirements 9.5**
-
----
-
-### Property 7: Document link round-trip
-
-*For any* document link attached to a valid parent entity (Service, WorkflowStage, Special_Project, or Follow_Up_Action), querying the links for that parent SHALL return a collection that includes the attached link with its URL and label preserved exactly.
-
-**Validates: Requirements 10.1, 10.2, 10.3**
-
----
-
-### Property 8: Audit entry recorded on stage status change
-
-*For any* stage status update, an audit entry SHALL be recorded containing the previous status, new status, the date of change, and the user who made the change.
-
-**Validates: Requirements 13.1**
-
----
-
-### Property 9: Audit entry recorded on follow-up action status change
-
-*For any* follow-up action status update, an audit entry SHALL be recorded containing the previous status, new status, the date of change, and the user who made the change.
-
-**Validates: Requirements 13.2**
-
----
-
-### Property 10: Search returns only matching services
-
-*For any* search query string, the search results SHALL contain only services whose name or agency owner name contains the query string (case-insensitive), and SHALL NOT contain services that do not match.
-
-**Validates: Requirements 12.1**
-
----
-
-### Property 11: Filter returns only matching services
-
-*For any* combination of filter criteria (Agency Owner, Stage Status, delayed status), the filtered results SHALL contain only services that satisfy all applied filters, and SHALL NOT contain services that fail any applied filter.
-
-**Validates: Requirements 12.2**
+Design should leave room for future extensions without implementing them now.
 
 ---
 
-### Property 12: Dashboard summary counts are consistent
+## 4. System Architecture
 
-*For any* set of registered services with varying Go-Live statuses and delayed computations, the dashboard summary SHALL satisfy: `total_services = go_live_count + in_progress_count`, and `delayed_count` SHALL equal the count of services where the delayed condition is true.
+### 4.1 Architecture Style
 
-**Validates: Requirements 6.1, 6.2, 6.3, 6.4**
+EngageFlow uses a **layered modular monolith**.
 
----
+It remains one Laravel application. The codebase is organised by feature area using normal Laravel conventions. The goal is predictable Laravel code: thin controllers, form requests for validation, policies for authorization, action classes for business operations, Eloquent for data access, PostgreSQL for persistence, and JSONB for flexible visual workflow definitions.
 
-### Property 13: Role-based authorization is enforced
-
-*For any* user with role Admin, all user management actions SHALL succeed. *For any* user with role Lead or Member, all service/special project/follow-up action CRUD operations SHALL succeed, and user management actions SHALL be rejected.
-
-**Validates: Requirements 11.3, 11.4**
-
-
----
-
-## Error Handling
-
-### Validation Errors
-- All input is validated at the service layer (via Laravel Form Requests) before persistence. Invalid inputs — missing required fields, invalid status values, malformed URLs — return structured validation error responses surfaced through Inertia's error handling.
-- Stage status values are validated against the fixed enum. Attempts to set an invalid status are rejected with a clear error message.
-
-### Business Rule Violations
-- Attempting to register a service without an existing Agency Owner returns a not-found error.
-- Attempting to update a stage that does not belong to the given service returns a not-found or authorization error.
-
-### Authorization Errors
-- Unauthenticated requests are redirected to the login page (Inertia handles this via the `HandleInertiaRequests` middleware).
-- Requests that violate role policies return a 403 Forbidden response.
-
-### Delayed and Overdue Computation
-- Delayed and overdue status are computed on read in v1. No stored flag is maintained for these computed values. If query performance becomes an issue as data grows, a scheduled job can be introduced later.
-
-### Database Errors
-- Unexpected database errors are caught at the controller layer and return a 500 response with a generic message. Errors are logged for investigation.
-
----
-
-## Workflow / Status Logic
-
-### Stage Status Transitions
-
-Stages can be updated to any valid status at any time. There is no enforced linear progression. The valid statuses are:
-
-```
-Pending → In_Progress → Completed
-       ↘ KIV
-       ↘ Not_Applicable
-       ↘ Blocked
-       ↘ To_Be_Confirmed
+```text
+React / Inertia Pages and Components
+    ├── Visual Workflow Builder
+    │   ├── WorkflowCanvas
+    │   ├── WorkflowNode
+    │   ├── WorkflowEdge
+    │   ├── WorkflowStepInspector
+    │   ├── WorkflowToolbar
+    │   └── WorkflowStepList
+    └── Project / Task / Dashboard Screens
+        ↓
+Laravel Routes
+        ↓
+HTTP Controllers
+        ↓
+Form Requests + Policies
+        ↓
+Application Actions
+        ↓
+Eloquent Models / Query Builder
+        ↓
+PostgreSQL
+    ├── Relational tables
+    └── JSONB visual workflow definitions
 ```
 
-Any stage can be moved to any status regardless of other stages' statuses. This reflects real-world engagement work where stages may be revisited or handled out of order.
+### 4.2 Visual Workflow Builder Request Flow
 
-**Active Stage**: The stage most recently explicitly set to `In_Progress` by a user is displayed as the current active stage. If multiple stages are `In_Progress`, the one with the highest `stage_order` is considered the active stage for display purposes.
+Saving a visual workflow definition follows this flow:
 
-### Delayed Flag Logic
-
-```
-is_delayed = (target_completion_date IS NOT NULL)
-           AND (target_completion_date < CURRENT_DATE)
-           AND (Go-Live stage status != Completed)
-```
-
-Computed on read in v1.
-
-### Overdue Follow-Up Logic
-
-```
-is_overdue = (due_date < CURRENT_DATE)
-           AND (status NOT IN ('Done', 'Cancelled'))
+```text
+User edits workflow on WorkflowCanvas
+→ WorkflowBuilder updates local nodes/edges/viewport state
+→ User saves workflow
+→ Inertia submits JSON workflow definition
+→ Controller receives request
+→ Form Request validates workflow JSON shape
+→ Policy checks Project access
+→ Action validates business rules and saves ProjectWorkflow.definition JSONB
+→ Controller redirects or returns updated Inertia props
 ```
 
-Computed on read in v1.
+When Tasks do not exist, the save action may persist structural workflow changes such as nodes, labels, mandatory flags, order, and edges. When Tasks already exist, the save action must reject structural workflow changes and only persist layout-only changes such as node positions and viewport/layout metadata.
+
+Loading a visual workflow definition follows this flow:
+
+```text
+User opens Project Workflow Builder
+→ Controller checks Project access
+→ Query/action loads ProjectWorkflow.definition
+→ Controller returns workflow definition as Inertia props
+→ React WorkflowBuilder reconstructs WorkflowCanvas nodes, edges, positions, and viewport
+```
+
+### 4.3 Task Creation Flow from Visual Workflow
+
+Task creation converts the visual workflow definition into relational progress rows:
+
+```text
+User creates Task
+→ Controller validates Task input
+→ Policy checks Project access
+→ Action reads ProjectWorkflow.definition JSONB
+→ Action validates at least one mandatory stage node exists
+→ Action creates Task
+→ Action creates TaskWorkflowStep rows from workflow nodes
+→ Controller redirects to Task or Project dashboard
+```
+
+The JSONB workflow definition is the Project-level design source of truth. `TaskWorkflowStep` rows are the Task-level operational progress snapshot.
+
+### 4.4 Data Layer Separation
+
+PostgreSQL is the physical database. Eloquent is the application data access layer.
+
+```text
+Eloquent ORM / Query Builder = application data access
+PostgreSQL relational tables = structured operational data
+PostgreSQL JSONB = flexible visual workflow definition data
+```
+
+Use relational tables for records that need filtering, dashboard counts, audit history, joins, and access control. This includes Tasks, Task Workflow Steps, Task Deliverables, Follow-Up Actions, Document Links, and Audit Entries.
+
+Use JSONB for the Project Workflow Definition because its shape may evolve from ordered stages to richer workflow graphs later. The JSONB structure must include enough visual layout data to restore the canvas.
+
+### 4.5 Layer Responsibilities
+
+| Layer | Responsibility | Guardrail |
+|---|---|---|
+| React/Inertia UI | Pages, forms, layouts, reusable components, visual workflow builder | No trusted business rules beyond local UI behaviour |
+| WorkflowCanvas components | Visual editing of nodes, edges, positions, viewport, selected step | Must remain reusable and isolated from Task/Dashboard logic |
+| Routes | Map URLs to controllers | Keep grouped by feature |
+| Controllers | Authorize, call actions, return Inertia responses | Keep thin |
+| Form Requests | Validate HTTP input, including workflow JSON shape | Keep validation at boundary |
+| Policies | Enforce Project ownership now and membership later | Never rely only on hidden UI |
+| Actions | Business operations and transactions | Main home for workflow/task/deliverable rules |
+| Models | Relationships, casts, simple helpers | Avoid complex workflows in models |
+| Events/Listeners | Audit/history and future side effects | Keep side effects separate |
+| PostgreSQL | Relational persistence and JSONB workflow definitions | Migrations are append-only after merge |
 
 ---
 
-## Progress Calculation Approach
+## 5. Code Organisation
 
-### Per-Service Progress
+Use normal Laravel conventions. Do not force an `app/Modules` structure unless it clearly helps.
 
-Progress for a service is derived from its 10 workflow stages:
+### 5.1 Backend Structure
 
-- **Completed stages**: stages with status = `Completed`
-- **Not Applicable stages**: stages with status = `Not_Applicable` (excluded from the denominator)
-- **Progress percentage**: `(completed_count) / (10 - not_applicable_count) * 100`
+```text
+app/
+  Http/
+    Controllers/
+      Projects/
+      Workflows/
+      WorkflowBuilder/
+      Tasks/
+      Deliverables/
+      FollowUps/
+      Documents/
+      Dashboard/
+    Requests/
+      Projects/
+      Workflows/
+      WorkflowBuilder/
+      Tasks/
+      Deliverables/
+      FollowUps/
+      Documents/
+  Models/
+    User.php
+    Project.php
+    ProjectWorkflow.php
+    Task.php
+    TaskWorkflowStep.php
+    TaskDeliverable.php
+    FollowUpAction.php
+    DocumentLink.php
+    AuditEntry.php
+  Policies/
+    ProjectPolicy.php
+    ProjectWorkflowPolicy.php
+    TaskPolicy.php
+    TaskWorkflowStepPolicy.php
+    TaskDeliverablePolicy.php
+    FollowUpActionPolicy.php
+    DocumentLinkPolicy.php
+  Actions/
+    Projects/
+    Workflows/
+      CreateDefaultWorkflow.php
+      SaveVisualWorkflowDefinition.php
+      ValidateWorkflowDefinition.php
+      CreateTaskWorkflowSnapshot.php
+      DetectWorkflowStructuralChange.php
+    WorkflowBuilder/
+      NormalizeWorkflowDefinition.php
+      ReorderWorkflowNodes.php
+    Tasks/
+    Deliverables/
+    FollowUps/
+    Documents/
+    Dashboard/
+    Audit/
+  Events/
+  Listeners/
+```
 
-This gives a meaningful percentage even when some stages are skipped.
+Backend guardrails:
 
-### Dashboard Summary Counts
+- Workflow JSON validation must be server-side, not only in React.
+- The save workflow action must validate node IDs, labels, mandatory flags, order, positions, and edges.
+- The save workflow action must block structural workflow changes after Tasks exist and allow layout-only changes.
+- Task creation must use an action to copy workflow nodes into `TaskWorkflowStep` rows.
+- Do not scatter workflow JSON parsing across controllers, models, and dashboard queries.
+
+### 5.2 Frontend Structure
+
+```text
+resources/js/
+  Layouts/
+    AuthenticatedLayout.tsx
+  Pages/
+    Dashboard/
+    Projects/
+    Workflows/
+      Builder.tsx
+    Tasks/
+  Components/
+    Projects/
+    Workflows/
+      WorkflowBuilder.tsx
+      WorkflowCanvas.tsx
+      WorkflowNode.tsx
+      WorkflowEdge.tsx
+      WorkflowStepInspector.tsx
+      WorkflowToolbar.tsx
+      WorkflowStepList.tsx
+      WorkflowMiniMap.tsx        // optional, only if simple
+      WorkflowEmptyState.tsx
+    Tasks/
+    Deliverables/
+    FollowUps/
+    Documents/
+    Shared/
+```
+
+Frontend guardrails:
+
+- Application screens are Inertia React.
+- Blade is only for the root Inertia view.
+- Visual Workflow Builder is a core v1 screen and should be implemented early.
+- Keep workflow builder components lego-style and reusable.
+- Keep WorkflowCanvas state isolated from Task and Dashboard components.
+- Avoid one giant workflow builder component.
+- Avoid one giant dashboard component.
+- UI may hide unavailable actions, but backend policies must enforce access.
+- When Tasks exist, the builder UI should clearly indicate that only layout changes are editable in v1.
+
+---
+
+## 6. Feature Areas / Modules
+
+| Feature Area | Responsibility |
+|---|---|
+| Project Management | Create, update, list, and select Projects owned by the user |
+| Visual Workflow Builder | Canvas-like creation and editing of Project workflow nodes, edges, positions, order, and mandatory/optional settings |
+| WorkflowCanvas Application | Applies canvas UI as the design-time surface for Project workflow definitions only |
+| Workflow Definition Management | Validate, normalize, save, load, and detect structural changes in `ProjectWorkflow.definition` JSONB |
+| Task Tracking | Create, update, list, search, and filter Tasks inside a Project |
+| Task Workflow Snapshot | Convert Project workflow JSONB nodes into relational TaskWorkflowStep rows |
+| Stage / Step Tracking | Update copied Task Workflow Step status and completion date |
+| Deliverable Tracking | Create, update, list, and track expected Task outputs, including overdue deliverables |
+| Follow-Up Tracking | Create, update, list, and flag overdue Follow-Up Actions |
+| Document Links | Store and display external links attached to allowed parent records |
+| Dashboard | Show Project-scoped summary, progress, delayed tasks, pending/overdue deliverables, and overdue follow-ups |
+| History | Record and display status change history |
+| Access Control | Enforce owner-only access in v1, prepare for Project members later |
+
+Feature dependency rules:
+
+- Project Management owns Projects.
+- Visual Workflow Builder edits ProjectWorkflow JSONB definition.
+- WorkflowCanvas is used only inside the Visual Workflow Builder screen.
+- Workflow Definition Management validates and persists the JSONB definition.
+- Task Tracking creates Tasks but must call Task Workflow Snapshot logic to create TaskWorkflowStep rows.
+- Stage / Step Tracking updates copied TaskWorkflowStep rows only.
+- Dashboard reads relational operational data, not raw workflow JSON, wherever possible.
+- History listens to status changes and records Audit Entries.
+- Future collaboration must not be implemented before the single-user flow is stable.
+
+---
+
+## 7. Domain Model
+
+### 7.1 Entity Overview
+
+```text
+User
+  └── Project
+        ├── ProjectWorkflow
+        │     └── definition JSONB
+        │           ├── nodes[]
+        │           ├── edges[]
+        │           └── viewport/layout metadata
+        └── Task
+              ├── TaskWorkflowStep
+              ├── TaskDeliverable
+              ├── FollowUpAction
+              └── DocumentLink
+
+TaskWorkflowStep
+  └── DocumentLink
+
+TaskDeliverable
+  └── DocumentLink
+
+FollowUpAction
+  └── DocumentLink
+
+TaskWorkflowStep / TaskDeliverable / FollowUpAction
+  └── AuditEntry
+```
+
+Future collaboration extension:
+
+```text
+Project
+└── ProjectMember
+    └── User
+```
+
+### 7.2 User
+
+Fields:
+
+- `id`
+- `name`
+- `email`
+- `password`
+- timestamps
+
+Rules:
+
+- No global role is required for v1.
+- Laravel session auth is used in v1.
+- Future Keycloak/OIDC can map external identities to local User records.
+
+### 7.3 Project
+
+Fields:
+
+- `id`
+- `owner_user_id`
+- `name`
+- `description` nullable
+- timestamps
+
+Rules:
+
+- A Project belongs to one owner User.
+- In v1, only the owner can access the Project.
+- All child data must be scoped through Project ownership.
+- Each Project has one ProjectWorkflow.
+
+### 7.4 ProjectWorkflow
+
+Fields:
+
+- `id`
+- `project_id`
+- `definition` JSONB
+- `version`
+- timestamps
+
+Rules:
+
+- One Project has one ProjectWorkflow.
+- `definition` is the source of truth for the Project workflow design and visual layout.
+- WorkflowCanvas reads from and writes to `definition` through the Visual Workflow Builder.
+- Keep this entity isolated as the extension point for future workflow capability.
+- Do not create a relational table for each workflow design concern unless there is a clear reporting/query need.
+
+Example v1 definition:
+
+```json
+{
+  "version": 1,
+  "type": "ordered_stages",
+  "nodes": [
+    {
+      "id": "planning",
+      "type": "stage",
+      "label": "Perancangan",
+      "mandatory": true,
+      "order": 1,
+      "position": { "x": 120, "y": 80 }
+    },
+    {
+      "id": "review",
+      "type": "stage",
+      "label": "Semakan",
+      "mandatory": false,
+      "order": 2,
+      "position": { "x": 380, "y": 80 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "planning_to_review",
+      "from": "planning",
+      "to": "review"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}
+```
+
+### 7.5 Workflow Node JSON Shape
+
+Each v1 workflow node should contain:
+
+- `id`: stable unique node identifier within the workflow.
+- `type`: `stage` for v1.
+- `label`: user-facing stage name.
+- `mandatory`: boolean.
+- `order`: numeric order for v1 ordered stage sequence.
+- `position`: visual canvas coordinates.
+
+V1 does not require multiple node types. Future node types may be added later.
+
+### 7.6 Workflow Edge JSON Shape
+
+Each v1 workflow edge should contain:
+
+- `id`: stable unique edge identifier within the workflow.
+- `from`: source node ID.
+- `to`: target node ID.
+
+For v1, edges visually connect ordered stages. They do not represent conditional execution.
+
+### 7.7 Task
+
+Fields:
+
+- `id`
+- `project_id`
+- `title`
+- `description` nullable
+- `target_completion_date` nullable
+- timestamps
+
+Rules:
+
+- A Task belongs to one Project.
+- A Task receives relational workflow progress rows copied from the ProjectWorkflow definition at creation time.
+- A Task can have zero or more Task Deliverables.
+- Delayed status is computed on read.
+
+### 7.8 TaskWorkflowStep
+
+Fields:
+
+- `id`
+- `task_id`
+- `workflow_node_id`
+- `label_snapshot`
+- `mandatory_snapshot`
+- `step_order`
+- `status`
+- `completed_at` nullable
+- timestamps
+
+Rules:
+
+- Created by reading `project_workflows.definition` when a Task is created.
+- Stores snapshot values so Task history remains stable if the Project workflow changes later.
+- Valid statuses: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
+- `completed_at` is set when status becomes Completed.
+
+### 7.9 TaskDeliverable
+
+A Task Deliverable represents an expected output from a Task. It is different from a generic Document Link. A Deliverable answers: “What output must this Task produce?” A Document Link answers: “Where is the related file/reference?”
+
+Fields:
+
+- `id`
+- `task_id`
+- `title`
+- `description` nullable
+- `deliverable_type`
+- `status`
+- `due_date` nullable
+- `remarks` nullable
+- timestamps
+
+Deliverable types for v1:
+
+- Document
+- Slide
+- Spreadsheet
+- Design
+- Repository
+- Link
+- Other
+
+Examples:
+
+- Kertas cadangan document.
+- Presentation slide deck.
+- Costing spreadsheet.
+- Figma design file.
+- GitHub repository link.
+- External reference URL.
+
+Valid statuses for v1:
+
+- Pending
+- In_Progress
+- Completed
+- Not_Required
+
+Rules:
+
+- A Task can have multiple Deliverables.
+- A Deliverable can have one or more Document Links attached to it.
+- Deliverables are relational because they are useful for dashboard indicators, filtering, follow-up, and status tracking.
+- A Deliverable is overdue when its due date is before today and its status is Pending or In_Progress.
+- Do not upload files in v1; store external links through DocumentLink.
+
+### 7.10 FollowUpAction
+
+Fields:
+
+- `id`
+- `task_id`
+- `title`
+- `due_date`
+- `status`
+- `remarks` nullable
+- timestamps
+
+Valid statuses:
+
+- Open
+- In_Progress
+- Done
+- Cancelled
+
+### 7.11 DocumentLink
+
+Fields:
+
+- `id`
+- `url`
+- `label` nullable
+- `linkable_type`
+- `linkable_id`
+- timestamps
+
+Allowed parents:
+
+- Task
+- TaskWorkflowStep
+- TaskDeliverable
+- FollowUpAction
+
+Rules:
+
+- Store links only.
+- Do not upload files in v1.
+- Do not integrate with external document storage in v1.
+- Access must be checked through the parent Project.
+
+### 7.12 AuditEntry
+
+Fields:
+
+- `id`
+- `project_id`
+- `auditable_type`
+- `auditable_id`
+- `field_changed`
+- `previous_value`
+- `new_value`
+- `changed_by_user_id`
+- `changed_at`
+- timestamps
+
+Tracked changes:
+
+- TaskWorkflowStep status changes.
+- TaskDeliverable status changes.
+- FollowUpAction status changes.
+
+---
+
+## 8. Visual Workflow Builder Design
+
+### 8.1 v1 Visual Workflow Builder
+
+The visual Workflow Builder is in scope for v1 because it is the core differentiator of the app.
+
+V1 builder behaviour:
+
+```text
+Open Project Workflow
+→ Add stage node
+→ Name stage
+→ Mark Mandatory/Optional
+→ Drag/reposition stage visually
+→ Reorder stage sequence before Tasks exist
+→ Save workflow definition
+→ Reload workflow definition later with layout preserved
+```
+
+The visual builder should show workflow nodes on a canvas-like area. V1 keeps the underlying logic as an ordered stage sequence, but the user experience should feel visual rather than only a plain form/table.
+
+### 8.2 How WorkflowCanvas Is Applied
+
+WorkflowCanvas is the **design-time surface** for a Project workflow. It is used only inside the Visual Workflow Builder screen.
+
+WorkflowCanvas is responsible for:
+
+- rendering workflow stage nodes;
+- rendering simple visual edges/connectors between ordered stages;
+- allowing node drag/reposition interactions;
+- maintaining local canvas state for nodes, edges, selected node, viewport position, and zoom;
+- passing selected node data to WorkflowStepInspector;
+- passing saveable workflow definition data back to WorkflowBuilder.
+
+WorkflowCanvas is **not** responsible for:
+
+- updating TaskWorkflowStep status;
+- calculating Task progress;
+- rendering the Project dashboard;
+- managing Task Deliverables;
+- managing Follow-Up Actions;
+- executing workflow automation;
+- evaluating conditions or branching logic.
+
+The separation is:
+
+```text
+WorkflowCanvas = design-time Project workflow editor
+TaskProgressTimeline = runtime/progress display for each Task
+Project_Dashboard = operational summary using relational Task data
+```
+
+Main usage flow:
+
+```text
+Project Dashboard
+→ Open Visual Workflow Builder
+→ WorkflowBuilder loads ProjectWorkflow.definition JSONB
+→ WorkflowCanvas renders nodes, edges, positions, and viewport
+→ User adds/moves/selects nodes on canvas
+→ WorkflowStepInspector edits selected node details
+→ WorkflowToolbar saves workflow definition
+→ Backend validates JSON shape and business rules
+→ ProjectWorkflow.definition is updated
+```
+
+Before Tasks exist, WorkflowCanvas can support structure and layout edits. After Tasks exist, WorkflowCanvas must switch to layout-only editing in v1. The UI should make structural controls read-only or unavailable and explain that structural workflow migration/rebuild is a future feature.
+
+### 8.3 Visual Builder Modules
+
+| UI Module | Responsibility |
+|---|---|
+| WorkflowBuilder | Parent component that owns builder state and save/load behaviour |
+| WorkflowCanvas | Canvas-like area for rendering nodes and edges |
+| WorkflowNode | Individual draggable stage node |
+| WorkflowEdge | Simple connector between ordered stage nodes |
+| WorkflowStepInspector | Side panel or drawer for editing selected node label and Mandatory/Optional setting |
+| WorkflowToolbar | Add stage, save workflow, reset layout, fit view, and other builder actions |
+| WorkflowStepList | Ordered list view/fallback panel for sequence review and reorder |
+| WorkflowEmptyState | First-use state prompting user to add the first stage |
+
+### 8.4 Visual Builder Interaction Scope
+
+In scope for v1 before Tasks exist:
+
+- Add a stage node.
+- Edit stage label.
+- Mark stage Mandatory or Optional.
+- Move/reposition stage node visually.
+- Reorder the stage sequence.
+- Show simple connecting edges between ordered stages.
+- Save and reload the visual layout from JSONB.
+- Show empty state before the first node is added.
+- Prevent saving a workflow with zero mandatory nodes.
+
+In scope for v1 after Tasks exist:
+
+- Move/reposition stage nodes visually.
+- Save and reload viewport/layout metadata.
+- Preserve existing TaskWorkflowStep snapshots.
+
+Not in scope for v1:
+
+- Structural workflow changes after Tasks exist.
+- Branching paths.
+- Conditional transitions.
+- Runtime execution.
+- External connectors.
+- Webhooks or hooks.
+- Automation actions.
+
+### 8.5 JSONB Workflow Definition
+
+The JSONB definition stores both workflow meaning and visual layout:
+
+- node ID;
+- node type;
+- label;
+- mandatory flag;
+- order;
+- position;
+- simple ordered edges;
+- viewport state if useful.
+
+The same JSONB structure should be future-friendly enough for graph features later, even though v1 behaves as an ordered stage workflow.
+
+### 8.6 Mandatory and Optional Steps
+
+Mandatory steps:
+
+- Count toward progress percentage.
+- Determine whether a Task is complete.
+- Determine delayed status through the final mandatory step.
+
+Optional steps:
+
+- Appear in the Task timeline.
+- Do not count toward the main progress percentage.
+- Do not block Task completion when marked Not_Applicable.
+- Can still be completed when relevant.
+
+### 8.7 Task Workflow Snapshot
+
+When a Task is created:
+
+1. Read the ProjectWorkflow JSONB definition.
+2. Validate that it has at least one mandatory stage node.
+3. Create TaskWorkflowStep rows by copying node ID, label, mandatory flag, and order.
+4. Set all copied TaskWorkflowStep statuses to Pending.
+
+TaskWorkflowStep rows are the operational progress state used by dashboard and reporting. The JSONB definition is not mutated when Task progress changes.
+
+### 8.8 Editing Workflow After Tasks Exist
+
+- Workflow definition can be edited freely before Tasks exist.
+- After Tasks exist, v1 allows layout-only changes such as node position and viewport/layout metadata.
+- After Tasks exist, v1 blocks structural workflow changes that would affect TaskWorkflowStep snapshots, including adding nodes, removing nodes, changing labels, changing mandatory flags, changing order, or changing edges.
+- A future workflow rebuild/migration feature may be designed later.
+
+### 8.9 Future Workflow Extensibility
+
+V1 must not implement advanced workflow behaviour. However, the JSONB model and visual builder should leave room for future additions such as:
+
+- branching;
+- condition rules;
+- runtime actions;
+- connectors;
+- extension points.
+
+Guardrails:
+
+- Keep future workflow concerns isolated around ProjectWorkflow.definition and visual Workflow Builder components.
+- Do not spread assumptions about flat workflows across unrelated code.
+- Keep Task creation as the boundary where Workflow Definition becomes TaskWorkflowStep rows.
+- Do not build future workflow behaviour now.
+
+---
+
+## 9. Access Control and RBAC
+
+### 9.1 v1 Access Model
+
+The first MVP is owner-only:
+
+- User can view Projects they own.
+- User cannot view Projects owned by another user.
+- User can create, update, and manage data inside owned Projects.
+- User cannot access Project-scoped data outside owned Projects.
+
+Use Laravel Policies for authorization.
+
+### 9.2 No Spatie in v1
+
+Do not install Spatie Laravel Permission in v1.
+
+Reason:
+
+- V1 only needs owner-based Project access.
+- Future collaboration can start with a simple ProjectMember table and policies.
+- Spatie should only be reconsidered if roles and permissions become more complex than Owner/Member.
+
+### 9.3 Future Collaboration Access
+
+Future roles:
+
+- Owner
+- Member
+
+Future access must remain application-level authorization. External identity providers should answer who the user is, not what Project the user can access.
+
+### 9.4 Policy Table
+
+| Action | Owner | Future Member | Non-member |
+|---|---:|---:|---:|
+| View Project | Yes | Future | No |
+| Update Project | Yes | No | No |
+| Open Workflow Builder | Yes | Future | No |
+| Save workflow structural changes before Tasks exist | Yes | No | No |
+| Save workflow layout-only changes after Tasks exist | Yes | No | No |
+| View Tasks | Yes | Future | No |
+| Create/update Tasks | Yes | Future | No |
+| Update Task workflow steps | Yes | Future | No |
+| Manage Task Deliverables | Yes | Future | No |
+| Manage Follow-Up Actions | Yes | Future | No |
+| Manage Document Links | Yes | Future | No |
+| View History | Yes | Future | No |
+| Manage Project Members | Future | No | No |
+
+Prefer 404 for inaccessible resources where resource discovery is a concern.
+
+---
+
+## 10. Authentication
+
+### 10.1 v1 Auth
+
+Use Laravel session-based authentication in v1.
+
+Do not introduce Keycloak, OIDC, or external SSO for the first MVP.
+
+### 10.2 Future Keycloak / OIDC
+
+Keycloak or another OIDC provider may be added later when collaboration, organisation deployment, or SSO becomes a real need.
+
+Future mapping can use local User records:
+
+```text
+external_provider = keycloak
+external_id = OIDC subject identifier
+```
+
+Guardrail:
+
+```text
+Authentication answers: who is this user?
+Application authorization answers: what Projects can this user access?
+```
+
+Project access must remain enforced by Laravel Policies.
+
+---
+
+## 11. Status and Progress Logic
+
+### 11.1 Task Workflow Step Status
+
+Valid statuses:
+
+```text
+Pending
+In_Progress
+Completed
+KIV
+Not_Applicable
+Blocked
+To_Be_Confirmed
+```
+
+Any step can move to any valid status. No strict linear progression is enforced in v1.
+
+### 11.2 Active Step
+
+Active step selection:
+
+1. If one or more steps are In_Progress, use the In_Progress step with the highest `step_order`.
+2. If no step is In_Progress, use the first mandatory step that is not Completed and not Not_Applicable.
+3. If all mandatory steps are Completed, the Task is complete.
+
+### 11.3 Progress Percentage
+
+```text
+progress = completed_mandatory_step_count / mandatory_step_count * 100
+```
+
+Optional steps are shown in the timeline but excluded from the main percentage.
+
+### 11.4 Delayed Task
+
+```text
+is_delayed = target_completion_date exists
+           AND target_completion_date < today
+           AND final mandatory step is not Completed
+```
+
+Delayed status is computed on read in v1.
+
+### 11.5 Overdue Follow-Up Action
+
+```text
+is_overdue = due_date < today
+           AND status is not Done
+           AND status is not Cancelled
+```
+
+Overdue status is computed on read in v1.
+
+### 11.6 Deliverable Completion
+
+```text
+deliverable_is_complete = status is Completed OR status is Not_Required
+```
+
+Deliverables do not replace workflow progress. They provide output tracking for the Task. A Task can be workflow-complete while still having incomplete Deliverables, so the UI should show both workflow progress and Deliverable status separately.
+
+### 11.7 Overdue Deliverable
+
+```text
+is_overdue = due_date exists
+           AND due_date < today
+           AND status is Pending or In_Progress
+```
+
+Overdue deliverable status is computed on read in v1.
+
+---
+
+## 12. Dashboard Design
+
+Dashboard is scoped to one selected Project.
+
+Metrics:
 
 | Metric | Calculation |
 |---|---|
-| Total Services | COUNT of all registered Services |
-| Go-Live Reached | COUNT of Services where Go-Live stage status = Completed |
-| In Progress | COUNT of Services where Go-Live stage status != Completed |
-| Delayed | COUNT of Services where is_delayed = true (computed) |
+| Total Tasks | Count Tasks in selected Project |
+| Completed Tasks | Count Tasks where final mandatory step is Completed |
+| In Progress Tasks | Count Tasks where final mandatory step is not Completed |
+| Delayed Tasks | Count Tasks where delayed rule is true |
+| Overdue Follow-Ups | Count FollowUpActions where overdue rule is true |
+| Pending Deliverables | Count TaskDeliverables where status is Pending or In_Progress |
+| Overdue Deliverables | Count TaskDeliverables where due date has passed and status is Pending or In_Progress |
 
-### Visual Progress Indicators
+Dashboard must not mix data across Projects.
 
-Each stage is rendered with a distinct visual indicator based on its status:
+Dashboard UI should include:
 
-| Status | Visual Treatment |
+- Project selector or active Project heading.
+- Link/button to open Visual Workflow Builder.
+- Summary cards.
+- Task list/table/cards.
+- Active step indicator.
+- Mandatory-step progress percentage.
+- Deliverable status indicator.
+- Optional-step indicators.
+- Delayed badge.
+- Overdue follow-up section.
+- Overdue deliverable section or indicator.
+- Search and filters.
+
+Dashboard should not parse complex workflow JSON for routine counts. It should rely on relational TaskWorkflowStep rows for task progress.
+
+---
+
+## 13. UI Component Design
+
+Recommended components:
+
+| Component | Purpose |
 |---|---|
-| Pending | Grey / empty circle |
-| In_Progress | Blue / filled circle or pulsing indicator |
-| Completed | Green / checkmark |
-| KIV | Yellow / pause icon |
-| Not_Applicable | Light grey / dash |
-| Blocked | Red / blocked icon |
-| To_Be_Confirmed | Orange / question mark |
+| `AuthenticatedLayout` | Shared authenticated shell |
+| `ProjectSwitcher` | Select active Project |
+| `ProjectCard` | Project summary |
+| `WorkflowBuilder` | Parent visual workflow builder component |
+| `WorkflowCanvas` | Canvas-like visual area for workflow nodes; in scope for v1 |
+| `WorkflowNode` | Individual draggable workflow stage node |
+| `WorkflowEdge` | Simple visual connector between ordered stages |
+| `WorkflowStepInspector` | Edit selected stage label and Mandatory/Optional setting |
+| `WorkflowToolbar` | Add stage, save workflow, fit view, reset layout, and related builder actions |
+| `WorkflowStepList` | Ordered step list / fallback editing panel |
+| `WorkflowEmptyState` | First-use state before workflow nodes exist |
+| `StepRequirementBadge` | Mandatory/Optional label |
+| `TaskCard` | Task summary |
+| `TaskProgressTimeline` | Task step timeline copied from workflow snapshot |
+| `DeliverableList` | List Task Deliverables and their statuses |
+| `DeliverableTypeBadge` | Show Document, Slide, Spreadsheet, Design, Repository, Link, or Other |
+| `StatusBadge` | Status display |
+| `DashboardSummaryCards` | Project metrics |
+| `FollowUpActionPanel` | Follow-up action list/manage UI |
+| `DocumentLinkList` | External document links |
+| `HistoryTimeline` | Status change history |
 
-The active stage (In_Progress with highest order) is highlighted prominently.
+UI guardrails:
 
-
----
-
-## Delayed / Overdue Logic
-
-### Delayed Services
-
-A service is delayed when:
-1. A `target_completion_date` has been set
-2. The current date has passed that date
-3. The Go-Live stage (stage 10) has not been marked as Completed
-
-The delayed status is surfaced:
-- As a visual badge on the service card in the dashboard
-- In the summary count ("X delayed")
-- As a filterable attribute in the search/filter panel
-
-No nightly job recalculates this in v1. If performance becomes an issue as data grows, a scheduled job can be added later.
-
-### Overdue Follow-Up Actions
-
-A follow-up action is overdue when:
-1. A `due_date` has been set
-2. The current date has passed that date
-3. The status is not `Done` or `Cancelled`
-
-Overdue follow-up actions are:
-- Displayed prominently in the dashboard (dedicated section or badge count)
-- Visually distinguished from non-overdue actions
+- White-based layout.
+- Clean spacing.
+- MYDS-inspired typography and component discipline.
+- FontAwesome icons.
+- No dense enterprise-table-only interface for the main dashboard.
+- Visual Workflow Builder is a core v1 screen and should be designed early.
+- WorkflowCanvas must be a real design-time workflow surface, not just a styled form.
+- WorkflowCanvas must support a canvas-like experience in v1 while keeping logic limited to ordered stages.
+- WorkflowCanvas must not be used as the Task status update screen.
+- Task status update belongs to Task screens, Task cards, or Task progress timelines.
+- When Tasks exist, the Workflow Builder should make structural fields read-only and allow layout-only edits.
+- Deliverables should be visible on Task detail and summarized on Task cards without overwhelming the workflow timeline.
 
 ---
 
-## Document Link Approach
+## 14. Validation and Error Handling
 
-Document links are stored as plain URLs with an optional label. There is no file upload, no Google Drive API integration, and no folder sync.
+Validation errors:
 
-### Storage
+- Missing Project name.
+- Invalid Workflow Definition JSON shape.
+- Workflow Definition with no mandatory stage node.
+- Missing workflow node ID.
+- Duplicate workflow node ID.
+- Missing workflow stage label.
+- Missing workflow node position when saving from the visual builder.
+- Invalid workflow edge referencing missing node ID.
+- Invalid or duplicate workflow node order.
+- Structural workflow change attempted after Tasks exist.
+- Task creation before Project has valid mandatory workflow stage.
+- Missing Task Deliverable title.
+- Invalid Task Deliverable type.
+- Invalid Task Deliverable status.
+- Invalid Task workflow step status.
+- Invalid Follow-Up Action status.
+- Invalid document URL.
 
-A polymorphic `document_links` table stores:
-- The URL (validated as a well-formed URL)
-- An optional label/description
-- A reference to the parent entity (Service, WorkflowStage, Special_Project, or Follow_Up_Action) via polymorphic association
+Business rule errors:
 
-### Display
+- User cannot access another user's Project.
+- User cannot create or update records outside owned Projects.
+- Existing TaskWorkflowStep rows must not be silently overwritten after workflow changes.
 
-Links are displayed inline alongside their parent entity. Each link renders as a clickable label (or the URL if no label is set) that opens in a new browser tab. FontAwesome's link or external-link icon is used consistently for document link items.
+Auth errors:
 
-### Constraints
-
-- No file size limits (links only, no uploads)
-- No Google Drive API calls
-- No folder browsing
-- URL format is validated on save; invalid URLs are rejected
-
----
-
-## History Tracking Approach
-
-### What is Tracked
-
-| Entity | Tracked Changes |
-|---|---|
-| WorkflowStage | Status changes (previous status → new status) |
-| Follow_Up_Action | Status changes (previous status → new status) |
-
-### How it Works
-
-1. When `WorkflowStageService::updateStatus()` is called, it fires a `StageStatusChanged` event.
-2. The `AuditHistoryListener` handles the event and writes an `AuditEntry` record.
-3. Same pattern for `FollowUpActionService::update()` → `FollowUpActionStatusChanged` → `AuditHistoryListener`.
-
-This keeps audit logic out of the business service and makes it easy to extend (e.g., add more tracked fields later).
-
-### Audit Entry Contents
-
-Each `AuditEntry` records:
-- Entity type and ID (polymorphic)
-- Field changed (e.g., "status")
-- Previous value
-- New value
-- User who made the change
-- Timestamp of the change
-
-### Viewing History
-
-History is viewable per service (showing all stage changes) and per follow-up action. The UI presents history as a chronological list, newest first.
-
+- Unauthenticated users redirect to login.
+- Inaccessible records should return 404 where resource discovery is a concern.
 
 ---
 
-## Graphical Progress View Approach
+## 15. Events and History
 
-### UI Direction
+Events:
 
-The visual style is clean, simple, modern, and white-based. The design feel is closer to Airbnb-style clarity: generous spacing, clean cards, soft borders, simple typography, minimal clutter, and clear visual hierarchy. The interface should be calm, professional, and easy to scan.
-
-- Avoid heavy, dense, old-style government portal aesthetics.
-- Do not overuse strong colors. Use color mainly for statuses, alerts, badges, and progress indicators.
-- The engagement team should understand progress, delay, and follow-up status at a glance.
-
-### Design System: MYDS + Custom Components
-
-**MYDS (Malaysia Digital Services)** is the primary design system. Use MYDS components and design guidance wherever practical — typography, spacing, color tokens, buttons, form elements, and layout primitives.
-
-For EngageFlow-specific UI elements that MYDS does not cover, create reusable React components that align with MYDS styling:
-- Workflow timeline / stage progress bar
-- Dashboard summary cards (Total, Go-Live, In Progress, Delayed)
-- Progress percentage indicator
-- Graphical status summary (stage status breakdown)
-- Follow-up action panels
-- Overdue item badges
-
-Do NOT create a separate custom design system. Extend MYDS with targeted custom components only where needed.
-
-### Icons: FontAwesome
-
-FontAwesome is used consistently across the UI. Use icons purposefully — not decoratively. Key icon usage:
-
-| Context | Icon Usage |
-|---|---|
-| Workflow stages | Stage-type icons (e.g., envelope, handshake, code, rocket for Go-Live) |
-| Status badges | Status-specific icons (check, pause, ban, question, clock) |
-| Dashboard cards | Summary icons (list, flag, clock, warning) |
-| Document links | External link icon |
-| Overdue items | Warning / clock icon |
-| Actions (edit, delete) | Pencil, trash icons |
-
-Do not overload the UI with icons. Use them to reinforce meaning, not to fill space.
-
-### Individual Service View
-
-Each service is displayed with a horizontal workflow timeline showing all 10 stages. Each stage node is color-coded and icon-coded by status. The active stage is visually prominent (e.g., larger node, highlighted border).
-
-```
-[✓ Stage 1] → [✓ Stage 2] → [▶ Stage 3] → [○ Stage 4] → ... → [○ Go-Live]
-  Completed     Completed    In_Progress     Pending                Pending
-```
-
-The target completion date and delayed badge (if applicable) are shown alongside the timeline.
-
-### Dashboard / Summary View
-
-The dashboard shows:
-- Summary cards: Total Services, Go-Live Reached, In Progress, Delayed
-- A list/table of all services with their current active stage, progress percentage, delayed badge, and overdue follow-up count
-- Special Projects listed in a dedicated section with their status and overdue follow-up count
-- A prominent section for overdue follow-up actions across all entities
-
-### Search and Filter
-
-- Search bar: filters by service name or agency owner name (on-submit or live)
-- Filter panel: filter by Agency Owner (dropdown), Stage Status (multi-select), Delayed (toggle)
-- Filtered results update the service list in the progress view
-
-### Special Projects in the View
-
-Special Projects appear in a dedicated section of the dashboard. They show title, status, target date, and overdue follow-up count. They do not show a workflow timeline.
-
----
-
-## Queue / Job Usage
-
-Queues are **future-ready but not implemented in v1**. All delayed and overdue status computations happen on read in v1.
-
-Redis is included in Docker Compose only if a queued job is actually implemented. For v1, Redis is not required.
-
-| Job | Status | Notes |
+| Event | Trigger | Listener |
 |---|---|---|
-| `RecalculateDelayedFlags` | Not in v1 | Computed on read; add later if performance requires it |
-| `SendOverdueNotifications` | Not in v1 | Email/WhatsApp alerts — future feature |
-| `GenerateDashboardReport` | Not in v1 | PDF/Excel export — future feature |
-| `ImportServicesFromExcel` | Not in v1 | Bulk import from existing tracker — future feature |
+| `ProjectWorkflowDefinitionSaved` | Visual Workflow Definition is saved | Future audit or activity feed hook |
+| `TaskWorkflowStepStatusChanged` | TaskWorkflowStep status changes | Writes AuditEntry |
+| `TaskDeliverableStatusChanged` | TaskDeliverable status changes | Writes AuditEntry |
+| `FollowUpActionStatusChanged` | FollowUpAction status changes | Writes AuditEntry |
 
-When queue jobs are introduced, the Redis driver is already configured and ready.
+AuditEntry must include:
 
+- Project ID.
+- Entity type and ID.
+- Field changed.
+- Previous value.
+- New value.
+- User who changed it.
+- Timestamp.
+
+V1 may record workflow save history later, but TaskWorkflowStep, TaskDeliverable, and FollowUpAction status changes are the priority audit events.
 
 ---
 
-## Testing Strategy
+## 16. Testing Strategy
 
-### Approach
+Feature tests:
 
-PestPHP is used for all tests. The primary testing approach is unit and feature tests. Property-style tests are used selectively for critical business rules where input variation meaningfully increases confidence.
+- Login and authenticated access.
+- Project creation.
+- Project ownership access.
+- Visual Workflow Builder page can be opened for owned Project.
+- Visual Workflow Builder cannot be opened for another user's Project.
+- WorkflowCanvas saves JSONB workflow definition with nodes, positions, edges, mandatory flags, and order.
+- WorkflowCanvas reloads saved layout correctly.
+- WorkflowCanvas allows layout-only changes after Tasks exist.
+- WorkflowCanvas rejects structural workflow changes after Tasks exist.
+- WorkflowCanvas does not update TaskWorkflowStep status.
+- Workflow definition validation rejects missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, and invalid order.
+- Blocking Task creation when Project has no mandatory workflow node.
+- Task creation copies workflow definition into TaskWorkflowStep rows.
+- Task workflow step status update.
+- Task Deliverable create/update/status change.
+- Overdue Task Deliverable calculation.
+- Follow-Up Action create/update.
+- Document Link create/view/remove for Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
+- Dashboard summary counts.
+- Search/filter within selected Project.
+- Cross-project access denial.
 
-**Testing library**: PestPHP (built on PHPUnit). All tests — unit, feature, and property-style — use PestPHP.
+Unit tests:
 
-### Unit and Feature Tests
+- Workflow definition validation.
+- Workflow definition normalization.
+- Workflow structural change detection.
+- WorkflowCanvas state to JSONB definition mapping.
+- Workflow-to-task snapshot creation.
+- Progress percentage.
+- Active step selection.
+- Delayed calculation.
+- Overdue calculation.
+- Deliverable completion calculation.
+- Overdue deliverable calculation.
+- Month-end target date conversion.
+- Audit entry creation.
 
-Each service class has unit tests covering:
-- Happy path for each operation
-- Validation rejection for invalid inputs
-- Business rule enforcement (delayed flag, overdue flag, progress calculation)
-- Authorization policy enforcement
+Property-style tests:
 
-Feature tests (HTTP-level via Inertia) cover:
-- Full request/response cycle for key endpoints
-- Role-based access (Admin vs Lead vs Member)
-- Search and filter correctness
-- Audit history recording
-- Document link handling
-- Workflow stage updates
+- Workflow definition validation across generated node/edge combinations.
+- WorkflowCanvas node/edge layout round-trip to JSONB.
+- Month-end target conversion.
+- Delayed calculation across date/status combinations.
+- Overdue calculation across date/status combinations.
+- Overdue deliverable calculation across date/status combinations.
+- Dashboard count consistency.
 
-### Property-Style Tests
+---
 
-Property-style tests are used for the following critical business rules only. These are implemented using PestPHP's dataset and randomization capabilities, with a minimum of **100 iterations** per test.
+## 17. Local Development
 
-Each property test is tagged with a comment:
-`// Feature: engageflow-tracker, Property {N}: {property_text}`
+The project is container-first.
 
-| Property | Test Focus |
+Host requirements:
+
+- Docker Desktop
+- Git
+- Editor
+
+Docker services:
+
+| Container | Purpose |
 |---|---|
-| P4: Delayed flag correctness | Random target dates (past/future) × random Go-Live statuses |
-| P5: Month-only target uses last day | Random month/year combinations including Feb in leap/non-leap years |
-| P6: Follow-up overdue flag correctness | Random due dates × random statuses |
-| P12: Dashboard summary counts are consistent | Random sets of services with varied Go-Live and delayed states |
+| app | Laravel application |
+| node | Frontend build tooling for Inertia React and WorkflowCanvas components |
+| db | PostgreSQL |
 
-Properties P1–P3, P7–P11, P13 are covered by unit and feature tests with representative examples and edge cases. Full property-style randomization is reserved for the four rules above where input variation is most likely to reveal edge cases.
+Seeders should provide:
 
-### Test Organization
+- Default local user.
+- Sample Projects.
+- Sample Project Workflow definitions in JSONB with visual node positions, edges, and viewport metadata.
+- Sample Tasks with copied workflow steps and varied statuses.
+- Sample Task Deliverables with different types and statuses, including overdue examples.
+- Sample Follow-Up Actions.
+- Sample Document Links.
 
-```
-tests/
-  Unit/
-    AgencyOwnerServiceTest.php
-    ServiceTrackingServiceTest.php
-    WorkflowStageServiceTest.php
-    FollowUpActionServiceTest.php
-    DocumentLinkServiceTest.php
-    SpecialProjectServiceTest.php
-    AuditHistoryServiceTest.php
-    DashboardServiceTest.php
-  Feature/
-    ServiceWorkflowTest.php
-    DashboardTest.php
-    AuthorizationTest.php
-    SearchFilterTest.php
-    DocumentLinkTest.php
-    AuditHistoryTest.php
-  Property/
-    DelayedFlagPropertyTest.php
-    MonthEndTargetPropertyTest.php
-    FollowUpOverduePropertyTest.php
-    DashboardSummaryPropertyTest.php
-```
-
+Do not seed global roles for v1.
 
 ---
 
-## Local Development / Container Approach
+## 18. CI and Quality
 
-The project is **container-first**. The host machine only needs Docker Desktop, Git, and an editor (e.g., VS Code). PHP, Composer, Node, npm, MySQL, and Redis do not need to be installed on the host machine.
+CI should run on PRs and pushes to main.
 
-All app runtime tools run inside Docker containers. Composer commands run inside the `app` container. Node/npm build commands run inside the `app` container or a dedicated `node` container. The database runs inside Docker Compose.
+Checks:
 
-### Services in Docker Compose
+1. Composer install.
+2. Frontend install/build as required for Inertia asset manifest and WorkflowCanvas components.
+3. PostgreSQL database setup.
+4. Migrations.
+5. PestPHP tests.
+6. PHPStan.
+7. Laravel Pint.
 
-**v1 Docker Compose includes only:**
-
-| Service | Image | Purpose |
-|---|---|---|
-| `app` | Custom PHP 8.4 image (PHP-FPM + Nginx) | Laravel application server |
-| `node` | Node LTS image or build support inside `app` | Frontend asset compilation |
-| `db` | `mysql:8` | MySQL database |
-
-**Notes:**
-- Redis is NOT included in v1. Add Redis only when a real queued job is implemented.
-- Mailpit is NOT included until notification features are introduced.
-
-### Setup Flow
-
-```
-1. Clone the repository
-2. cp .env.example .env
-3. docker compose up -d
-4. docker compose exec app composer install
-5. docker compose exec app php artisan key:generate
-6. docker compose exec app php artisan migrate --seed
-7. docker compose exec app npm install && npm run build
-   (or: docker compose run --rm node npm install && npm run build)
-8. Open http://localhost:8000
-```
-
-### Seeder Strategy
-
-Database seeders provide:
-- A default Admin user
-- Sample Agency Owners and Services with varied stage statuses
-- Sample Special Projects and Follow-Up Actions
-- Sample Document Links
-
-This allows developers to immediately explore the dashboard without manual data entry.
-
-### Blade / Inertia Guardrail
-
-The application uses **Laravel + Inertia.js + React** consistently for all screens. Blade is used only where Laravel/Inertia requires it: the single root Inertia view at `resources/views/app.blade.php`.
-
-- Do NOT build application screens using Blade.
-- Do NOT create duplicate Blade pages for screens implemented in React/Inertia.
-- Do NOT leave unused scaffolded Blade files, layout files, or Blade components in the codebase.
-- Authentication screens also use the Inertia React stack — not mixed Blade scaffolding.
-- If any starter kit generates unused Blade files, remove them during setup.
-- No mixed Blade/React UI.
-
-Application pages live under:
-- `resources/js/Pages` — Inertia page components
-- `resources/js/Components` — reusable React components
-- `resources/js/Layouts` — layout components
-
-### Development Conventions
-
-- Feature branches off `main`; pull requests required to merge
-- `.env.example` kept up to date with all required environment variables
-- `README.md` documents the container-first setup clearly
-- Migrations are never edited after merging; new migrations are created for schema changes
+PRs should not be merged if CI fails.
 
 ---
 
-## CI Approach
+## 19. Documentation
 
-CI runs on every pull request and on merge to `main`.
-
-### CI Pipeline (GitHub Actions)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    CI Pipeline                          │
-│                                                         │
-│  1. Checkout code                                       │
-│  2. Set up PHP 8.4 + Composer cache                     │
-│  3. Install dependencies (composer install)             │
-│  4. Copy .env.ci → .env                                 │
-│  5. Generate app key                                    │
-│  6. Start MySQL service (GitHub Actions service)        │
-│  7. Run migrations                                      │
-│  8. Run full test suite (php artisan test)              │
-│     ├── Unit tests                                      │
-│     ├── Feature tests                                   │
-│     └── Property-style tests (if present)               │
-│  9. Run static analysis (PHPStan — level 5)             │
-│  10. Run code style check (Laravel Pint)                │
-└─────────────────────────────────────────────────────────┘
-```
-
-### CI Rules
-
-- PRs cannot be merged if any CI check fails.
-- PHPStan level 5 is the starting point — practical for early development. Level can be raised as the codebase matures.
-- Laravel Pint enforces code style automatically.
-- CI runs without requiring any project runtimes installed on the developer's laptop.
-- Property-style tests run if present. Iteration count is practical and configurable, not fixed at 100.
-
-### Branch Strategy
-
-- `main`: production-ready code
-- `feature/{name}`: feature development
-- `fix/{name}`: bug fixes
-- PRs require at least one reviewer approval before merge
-
----
-
-## Documentation
-
-Documentation is a first-class deliverable, not an afterthought. The project must include clear documentation so a developer who is learning the project can understand the codebase, structure, setup, and workflow.
-
-### Technical Documentation
-
-The following documentation files must be created and maintained under `docs/`:
+Required docs:
 
 | File | Contents |
 |---|---|
-| `docs/architecture.md` | Architecture overview: Laravel, Inertia, React, modules, service/action classes, policies, events/listeners, Eloquent models |
-| `docs/setup.md` | Container-first setup guide + manual setup guide explaining each command and what it does |
-| `docs/project-structure.md` | Project structure explanation: directory layout, module structure, frontend structure |
-| `docs/workflow-status.md` | Workflow/status logic, progress calculation, delayed logic, overdue logic, active stage selection |
-| `docs/testing.md` | How to run unit tests, feature tests, and selected property-style tests |
-| `docs/ci.md` | GitHub Actions CI checks explained |
-| `docs/user-guide.md` | User guide for engagement officers (see User Documentation below) |
-| `docs/troubleshooting.md` | Common issues: Docker, Composer, npm, migration, and permission problems |
+| `docs/architecture.md` | Laravel/Inertia/PostgreSQL/JSONB architecture with visual workflow builder as core module |
+| `docs/setup.md` | Container-first PostgreSQL setup |
+| `docs/project-structure.md` | Backend and frontend structure, including WorkflowBuilder and WorkflowCanvas components/actions |
+| `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
+| `docs/workflow-builder.md` | Visual Workflow Builder and WorkflowCanvas behaviour, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
+| `docs/deliverables.md` | Task Deliverables, types, statuses, overdue logic, and links |
+| `docs/testing.md` | Testing approach including visual workflow builder validation and WorkflowCanvas JSONB round-trip tests |
+| `docs/ci.md` | CI checks |
+| `docs/user-guide.md` | User guide for Projects, Visual Workflows, Tasks, Deliverables, and Dashboard |
+| `docs/troubleshooting.md` | Common development issues |
 
-`README.md` must link to all documentation files above and include a project overview and quick start.
-
-### Frontend Documentation
-
-`docs/project-structure.md` must include a frontend structure section covering:
-- `resources/js/Pages` — Inertia page components
-- `resources/js/Components` — reusable React components
-- `resources/js/Layouts` — layout components
-- MYDS usage guidance
-- Tailwind CSS usage guidance
-- FontAwesome usage guidance
-
-### User Documentation
-
-`docs/user-guide.md` must cover:
-- How to register an agency owner
-- How to register a service
-- How to update workflow stage status
-- How to read the graphical progress view
-- How to set target completion
-- How to identify delayed services
-- How to create follow-up actions
-- How to identify overdue follow-up actions
-- How to add document links
-- How to use search and filters
-- How to view special projects
-- How to view history/audit updates
-
-### Code Documentation
-
-- Important business logic should include clear comments where helpful.
-- Avoid noisy comments that merely repeat the code.
-- Complex logic — progress calculation, delayed status, overdue follow-up logic, active stage selection, audit recording — should be documented inline.
-- Public service/action methods should have concise PHPDoc when it improves readability.
-- React components that implement non-obvious UI behavior should include short explanatory comments.
+README.md should link to the docs and include a quick start.
 
 ---
 
-## GitHub Project Management
+## 20. Implementation Sequencing Guardrail
 
-GitHub is used for both source control and project management.
+Because the visual workflow builder and WorkflowCanvas are the core product experience, implementation should not postpone them until the end.
 
-### Issues
+Recommended early sequencing:
 
-Use GitHub Issues to track all work:
-- Features
-- Bugs
-- Documentation tasks
-- Test tasks
-- CI tasks
-- Setup tasks
-- Refactors
-- Technical improvements
+1. PostgreSQL and base data model.
+2. Project ownership and ProjectWorkflow JSONB storage.
+3. Visual Workflow Builder shell and WorkflowCanvas save/load.
+4. Workflow definition validation, normalization, and structural change detection.
+5. WorkflowCanvas JSONB round-trip tests.
+6. Task creation from workflow snapshot.
+7. Task progress/dashboard.
+8. Deliverables, follow-ups, document links, and history.
 
-Each implementation task in `tasks.md` should be suitable to become a GitHub Issue. Tasks should be small, reviewable, and linked to requirements where possible.
+Do not build a full automation engine while implementing the visual builder. V1 visual builder means visual ordered-stage workflow creation only.
 
-### Labels
+---
 
-Use clear labels to categorize issues:
+## 21. Pull Request and Task Rules
 
-| Label | Usage |
-|---|---|
-| `feature` | New functionality |
-| `bug` | Something broken |
-| `documentation` | Docs tasks |
-| `test` | Test tasks |
-| `refactor` | Code cleanup |
-| `ci` | CI/CD tasks |
-| `setup` | Project setup tasks |
-| `frontend` | Frontend work |
-| `backend` | Backend work |
-| `design` | UI/UX design tasks |
-
-### Milestones
-
-Use GitHub Milestones to group work by delivery phase. Example milestones:
-- `v1 Foundation` — project setup, Docker, CI, auth, base structure
-- `v1 Core Tracking` — agency owners, services, workflow stages
-- `v1 Dashboard` — progress view, summary, search, filter
-- `v1 Follow-Up & Documents` — follow-up actions, document links
-- `v1 Special Projects` — special project tracking
-- `v1 Audit & History` — audit trail
-- `v1 Documentation` — all docs tasks
-- `v1 Polish` — testing, cleanup, final review
-
-### Project Board
-
-Use GitHub Projects to track issue status:
-- **Backlog** — not yet started
-- **Ready** — ready to pick up
-- **In Progress** — being worked on
-- **Review** — in pull request review
-- **Done** — merged and closed
-
-### Pull Requests
-
-- Each PR should reference the related GitHub Issue.
-- PR descriptions should explain what was changed and why.
-- PRs require at least one reviewer approval before merging.
-- Do not commit directly to `main`.
-
-### tasks.md Structure
-
-When tasks.md is created:
-- Structure tasks so they can be converted into GitHub Issues.
-- Include documentation tasks as first-class tasks, not as an afterthought.
-- Include testing and CI tasks as first-class tasks.
-- Keep tasks small enough for one pull request each where practical.
+- Work from feature/spec/fix branches.
+- Pull requests are required before merging into main.
+- Each implementation task should map to a small GitHub Issue and PR.
+- CI must pass before merge.
+- Keep PRs small and reviewable.
+- Spec-only PRs must not include application code.
