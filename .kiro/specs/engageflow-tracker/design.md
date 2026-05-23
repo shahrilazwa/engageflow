@@ -2,84 +2,110 @@
 
 ## 1. Purpose
 
-EngageFlow is a Laravel + Inertia React application for tracking projects, tasks, workflow progress, follow-up actions, document links, and status history.
+EngageFlow is a Laravel + Inertia React application for tracking projects, custom workflows, tasks, follow-up actions, document links, dashboards, and status history.
 
-The v1 product is **project-first** and **single-user-first**. A user can create multiple Projects, build a custom Workflow for each Project, create Tasks inside the Project, and track progress visually. Collaboration is a future extension and should not block the first MVP.
+The v1 product is **project-first** and **single-user-first**. A user can create multiple Projects, define the workflow for each Project, create Tasks inside the Project, and track progress visually. Collaboration is a future extension and must not block the first MVP.
 
 Core v1 model:
 
 ```text
 User
 └── Project
-    ├── Project Workflow
-    │   └── Workflow Stages
+    ├── Workflow Definition (JSONB)
     └── Tasks
-        ├── Task Workflow Stages
+        ├── Task Workflow Steps (relational progress snapshot)
         ├── Follow-Up Actions
         ├── Document Links
         └── Status History
 ```
 
-If the user needs to track a different stream of work, they create another Project. Flexibility within a Project is handled by custom Workflow stages and mandatory/optional stage settings.
+If a user needs to track a different stream of work, they create another Project. Flexibility within a Project is handled by custom workflow definitions and mandatory/optional workflow steps.
 
 ---
 
-## 2. Product Scope
+## 2. Architecture Decisions
 
-### In Scope for v1
+### 2.1 Agreed Stack
 
-- Authenticated user can create and manage multiple Projects.
-- Each Project has one custom Workflow built by the user.
-- Workflow stages can be added, named, ordered, and marked mandatory or optional.
-- User can create Tasks inside a Project after the Project has at least one mandatory Workflow stage.
-- Each Task receives copied Task Workflow Stages from the Project Workflow.
-- User can update Task stage status.
+| Area | Decision | Notes |
+|---|---|---|
+| Backend framework | Laravel | Keep Laravel for MVP; it fits auth, policies, actions, migrations, tests, and dashboard workflows |
+| Frontend | Inertia.js + React | Keep modern React UI without needing a separate API-first frontend/backend split |
+| Database | PostgreSQL | Replaces MySQL because workflow definitions benefit from JSONB |
+| Workflow definition storage | PostgreSQL JSONB | Source of truth for Project workflow design/configuration |
+| Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, and audit data stay relational |
+| ORM / data access | Eloquent ORM + Query Builder | Laravel-native; do not introduce Prisma in v1 |
+| Authentication | Laravel session auth | Do not introduce Keycloak in v1 |
+| Authorization | Laravel Policies | Do not introduce Spatie Permission in v1 |
+| Styling | Tailwind CSS + MYDS-inspired components | White-based, clean, componentised UI |
+| Tests | PestPHP | Feature, unit, and selected property-style tests |
+| Local dev | Docker Compose | Container-first development |
+
+### 2.2 Explicit Non-Decisions for v1
+
+Do not introduce these in the first MVP:
+
+- Prisma.
+- Next.js or Nuxt rewrite.
+- Keycloak / OIDC / SSO.
+- Spatie Laravel Permission.
+- MongoDB or full NoSQL storage.
+- Separate public API.
+- Microservices.
+- Workflow automation engine.
+- File upload or document repository integration.
+
+These may be reconsidered later only when the product need is real.
+
+---
+
+## 3. Product Scope
+
+### 3.1 In Scope for v1
+
+- User can log in using Laravel session authentication.
+- User can create and manage multiple Projects.
+- Each Project has one Workflow Definition stored as JSONB.
+- Workflow Definition supports ordered stage-style workflows for v1.
+- Workflow steps can be named, ordered, and marked mandatory or optional.
+- User can create Tasks only after the Project workflow has at least one mandatory step.
+- Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
+- User can update Task Workflow Step status.
 - User can set a target completion date for a Task.
-- Dashboard shows Project-scoped task progress, delayed tasks, and overdue follow-up actions.
+- Dashboard shows Project-scoped progress, delayed Tasks, and overdue Follow-Up Actions.
 - User can add Follow-Up Actions to Tasks.
-- User can add external Document Links to Tasks, Task Workflow Stages, and Follow-Up Actions.
-- Status changes are recorded in history.
-- Project access is scoped to the Project owner in the first MVP.
+- User can add external Document Links to Tasks, Task Workflow Steps, and Follow-Up Actions.
+- Status changes are recorded in Audit Entries.
+- Project access is owner-only in the first MVP.
 
-### Future Extensions, Not v1
+### 3.2 Future Extensions, Not v1
 
-- Project member collaboration.
+- Project members and collaboration.
 - Cross-project dashboard.
 - Starter workflow library.
-- Advanced workflow capabilities such as branching, condition rules, runtime actions, connectors, and extension points.
+- Branching workflow paths.
+- Condition rules.
+- Runtime actions.
+- External connectors.
+- Webhooks or extension hooks.
 - Notifications.
 - File uploads.
 - External document repository integration.
 - Mobile app or public API.
+- Keycloak/OIDC SSO.
+- Spatie-powered RBAC.
 
-The design should not implement these future features now, but should avoid blocking them unnecessarily.
-
----
-
-## 3. Technology Stack
-
-| Area | Choice | Notes |
-|---|---|---|
-| Backend | Laravel | Session auth, Eloquent, policies, migrations, events |
-| PHP | PHP 8.4 | Minimum target version |
-| Frontend | Inertia.js + React | Application screens are React/Inertia |
-| Styling | Tailwind CSS | Use carefully with MYDS-inspired components |
-| Icons | FontAwesome | Consistent icon system |
-| Database | MySQL | Avoid database-specific tricks where possible |
-| Tests | PestPHP | Feature tests, unit tests, selected property-style tests |
-| Local dev | Docker Compose | Container-first setup |
-
-Blade is allowed only for the root Inertia view. Do not build application screens in Blade.
+Design should leave room for future extensions without implementing them now.
 
 ---
 
-## 4. Architecture
+## 4. System Architecture
 
 ### 4.1 Architecture Style
 
 EngageFlow uses a **layered modular monolith**.
 
-It remains one Laravel application, but code is grouped by feature area. The goal is boring, predictable Laravel code: thin controllers, clear validation, policy-based authorization, action classes for business logic, and Eloquent models for persistence.
+It remains one Laravel application. The codebase is organised by feature area using normal Laravel conventions. The goal is predictable Laravel code: thin controllers, form requests for validation, policies for authorization, action classes for business operations, Eloquent for data access, PostgreSQL for persistence, and JSONB for flexible workflow definitions.
 
 ```text
 React / Inertia Pages and Components
@@ -92,26 +118,40 @@ Form Requests + Policies
         ↓
 Application Actions
         ↓
-Eloquent Models + Database Transactions
+Eloquent Models / Query Builder
         ↓
-Events / Listeners
-        ↓
-MySQL
+PostgreSQL
+    ├── Relational tables
+    └── JSONB workflow definitions
 ```
 
-### 4.2 Write Flow
+### 4.2 Data Layer Separation
+
+PostgreSQL is the physical database. Eloquent is the application data access layer.
+
+```text
+Eloquent ORM / Query Builder = application data access
+PostgreSQL relational tables = structured operational data
+PostgreSQL JSONB = flexible workflow definition data
+```
+
+Use relational tables for records that need filtering, dashboard counts, audit history, joins, and access control. Use JSONB for the Project Workflow Definition because its shape may evolve from ordered stages to richer workflow graphs later.
+
+### 4.3 Request Flow
+
+Write flow:
 
 ```text
 React form submits through Inertia
 → Controller receives request
 → Form Request validates input
 → Policy checks Project access
-→ Action class performs operation, using transaction if needed
-→ Event is fired for history when needed
+→ Action performs business operation in transaction if needed
+→ Event records history if needed
 → Controller redirects or returns Inertia response
 ```
 
-### 4.3 Read Flow
+Read flow:
 
 ```text
 React page requests route
@@ -125,21 +165,21 @@ React page requests route
 
 | Layer | Responsibility | Guardrail |
 |---|---|---|
-| React/Inertia UI | Pages, layouts, forms, reusable components | No business rules beyond local UI state |
-| Routes | Map URLs to controllers | Group by feature |
-| Controllers | Authorize, call actions, return responses | Keep thin |
-| Form Requests | Validate input | Keep validation close to HTTP boundary |
-| Policies | Enforce Project access | Do not rely on hidden UI only |
-| Actions | Business operations and transactions | Main home for workflow/task logic |
-| Models | Relationships, casts, simple helpers | Avoid complex business workflows here |
-| Events/Listeners | History and future side effects | Keep side effects separate |
-| Database | Persistence | Append-only migrations after merge |
+| React/Inertia UI | Pages, forms, layouts, reusable components | No business rules beyond local UI behaviour |
+| Routes | Map URLs to controllers | Keep grouped by feature |
+| Controllers | Authorize, call actions, return Inertia responses | Keep thin |
+| Form Requests | Validate HTTP input | Keep validation at boundary |
+| Policies | Enforce Project ownership now and membership later | Never rely only on hidden UI |
+| Actions | Business operations and transactions | Main home for workflow/task rules |
+| Models | Relationships, casts, simple helpers | Avoid complex workflows in models |
+| Events/Listeners | Audit/history and future side effects | Keep side effects separate |
+| PostgreSQL | Relational persistence and JSONB workflow definitions | Migrations are append-only after merge |
 
 ---
 
 ## 5. Code Organisation
 
-Use normal Laravel conventions. A strict `app/Modules` folder is not required.
+Use normal Laravel conventions. Do not force an `app/Modules` structure unless it clearly helps.
 
 ### 5.1 Backend Structure
 
@@ -163,16 +203,15 @@ app/
     User.php
     Project.php
     ProjectWorkflow.php
-    ProjectWorkflowStage.php
     Task.php
-    TaskWorkflowStage.php
+    TaskWorkflowStep.php
     FollowUpAction.php
     DocumentLink.php
     AuditEntry.php
   Policies/
     ProjectPolicy.php
     TaskPolicy.php
-    TaskWorkflowStagePolicy.php
+    TaskWorkflowStepPolicy.php
     FollowUpActionPolicy.php
     DocumentLinkPolicy.php
   Actions/
@@ -207,62 +246,36 @@ resources/js/
     Shared/
 ```
 
-Frontend guardrails:
+Guardrails:
 
-- Pages compose reusable components.
+- Application screens are Inertia React.
+- Blade is only for the root Inertia view.
+- Keep components lego-style and reusable.
 - Avoid one giant dashboard component.
-- Keep Project, Workflow, Task, Follow-Up, Document, and Dashboard components grouped by feature.
-- UI may hide unavailable actions, but backend policies must still enforce access.
+- UI may hide unavailable actions, but backend policies must enforce access.
 
 ---
 
-## 6. Feature Areas
+## 6. Domain Model
 
-| Feature Area | Responsibility |
-|---|---|
-| Project Management | Create, update, list, and select Projects owned by the user |
-| Workflow Builder | Build Project Workflow stages with order and mandatory/optional flag |
-| Task Tracking | Create, update, list, search, and filter Tasks inside a Project |
-| Stage Tracking | Update copied Task Workflow Stage status and completion date |
-| Follow-Up Tracking | Create, update, list, and flag overdue Follow-Up Actions |
-| Document Links | Store and display external links attached to allowed parent records |
-| Dashboard | Show Project-scoped summary, progress, delayed tasks, and overdue follow-ups |
-| History | Record and display status change history |
-| Access Control | Enforce owner-only access in v1, prepare for Project members later |
-
-Feature dependency rules:
-
-- Project Management owns Projects.
-- Workflow Builder owns Project Workflow definitions.
-- Task Tracking creates Tasks and copies stages from the Project Workflow.
-- Stage Tracking updates copied Task Workflow Stages only.
-- Dashboard reads Project-scoped data only.
-- History listens to status changes and records Audit Entries.
-- Future collaboration must not be implemented before the single-user flow is stable.
-
----
-
-## 7. Domain Model
-
-### 7.1 Entity Relationship Overview
+### 6.1 Entity Overview
 
 ```text
 User
   └── Project
-        ├── ProjectWorkflow
-        │     └── ProjectWorkflowStage
+        ├── ProjectWorkflow (JSONB definition)
         └── Task
-              ├── TaskWorkflowStage
+              ├── TaskWorkflowStep
               ├── FollowUpAction
               └── DocumentLink
 
-TaskWorkflowStage
+TaskWorkflowStep
   └── DocumentLink
 
 FollowUpAction
   └── DocumentLink
 
-TaskWorkflowStage / FollowUpAction
+TaskWorkflowStep / FollowUpAction
   └── AuditEntry
 ```
 
@@ -274,9 +287,7 @@ Project
     └── User
 ```
 
-### 7.2 Entity Details
-
-#### User
+### 6.2 User
 
 Fields:
 
@@ -286,12 +297,13 @@ Fields:
 - `password`
 - timestamps
 
-Notes:
+Rules:
 
-- No global role is required for first MVP.
-- A user accesses Projects they own.
+- No global role is required for v1.
+- Laravel session auth is used in v1.
+- Future Keycloak/OIDC can map external identities to local User records.
 
-#### Project
+### 6.3 Project
 
 Fields:
 
@@ -304,42 +316,61 @@ Fields:
 Rules:
 
 - A Project belongs to one owner User.
-- In the first MVP, only the owner can access the Project.
-- All Project data must be scoped through Project ownership.
+- In v1, only the owner can access the Project.
+- All child data must be scoped through Project ownership.
 
-#### ProjectWorkflow
+### 6.4 ProjectWorkflow
 
 Fields:
 
 - `id`
 - `project_id`
+- `definition` JSONB
+- `version`
 - timestamps
 
 Rules:
 
 - One Project has one ProjectWorkflow.
-- It is the blueprint for creating Task Workflow Stages.
-- Keep this entity isolated as the future extension point for more advanced workflow capability.
+- `definition` is the source of truth for the Project workflow design.
+- Keep this entity isolated as the extension point for future workflow capability.
+- Do not create a relational table for each workflow design concern unless there is a clear reporting/query need.
 
-#### ProjectWorkflowStage
+Example v1 definition:
 
-Fields:
+```json
+{
+  "version": 1,
+  "type": "ordered_stages",
+  "nodes": [
+    {
+      "id": "planning",
+      "type": "stage",
+      "label": "Perancangan",
+      "mandatory": true,
+      "order": 1,
+      "position": { "x": 120, "y": 80 }
+    },
+    {
+      "id": "review",
+      "type": "stage",
+      "label": "Semakan",
+      "mandatory": false,
+      "order": 2,
+      "position": { "x": 380, "y": 80 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "planning_to_review",
+      "from": "planning",
+      "to": "review"
+    }
+  ]
+}
+```
 
-- `id`
-- `project_workflow_id`
-- `name`
-- `stage_order`
-- `is_mandatory`
-- timestamps
-
-Rules:
-
-- Stages are ordered.
-- A Project must have at least one mandatory stage before Tasks can be created.
-- Stage name, order, and mandatory/optional flag may be edited before Tasks exist.
-- Once Tasks exist, existing Task Workflow Stages are preserved.
-
-#### Task
+### 6.5 Task
 
 Fields:
 
@@ -353,31 +384,31 @@ Fields:
 Rules:
 
 - A Task belongs to one Project.
-- A Task follows the Project Workflow snapshot copied at creation time.
+- A Task receives relational workflow progress rows copied from the ProjectWorkflow definition at creation time.
 - Delayed status is computed on read.
 
-#### TaskWorkflowStage
+### 6.6 TaskWorkflowStep
 
 Fields:
 
 - `id`
 - `task_id`
-- `project_workflow_stage_id` nullable
-- `name`
-- `stage_order`
-- `is_mandatory`
+- `workflow_node_id`
+- `label_snapshot`
+- `mandatory_snapshot`
+- `step_order`
 - `status`
 - `completed_at` nullable
 - timestamps
 
 Rules:
 
-- Created by copying ProjectWorkflowStage name, order, and mandatory flag.
-- Keeps a snapshot so task progress history remains stable.
+- Created by reading `project_workflows.definition` when a Task is created.
+- Stores snapshot values so Task history remains stable if the Project workflow changes later.
 - Valid statuses: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
 - `completed_at` is set when status becomes Completed.
 
-#### FollowUpAction
+### 6.7 FollowUpAction
 
 Fields:
 
@@ -396,9 +427,7 @@ Valid statuses:
 - Done
 - Cancelled
 
-Overdue status is computed on read.
-
-#### DocumentLink
+### 6.8 DocumentLink
 
 Fields:
 
@@ -412,7 +441,7 @@ Fields:
 Allowed parents:
 
 - Task
-- TaskWorkflowStage
+- TaskWorkflowStep
 - FollowUpAction
 
 Rules:
@@ -422,7 +451,7 @@ Rules:
 - Do not integrate with external document storage in v1.
 - Access must be checked through the parent Project.
 
-#### AuditEntry
+### 6.9 AuditEntry
 
 Fields:
 
@@ -439,12 +468,75 @@ Fields:
 
 Tracked changes:
 
-- TaskWorkflowStage status changes.
+- TaskWorkflowStep status changes.
 - FollowUpAction status changes.
 
 ---
 
-## 8. Access Control
+## 7. Workflow Design
+
+### 7.1 v1 Workflow Builder
+
+The first MVP Workflow Builder is an ordered stage builder backed by JSONB:
+
+```text
+Add stage → name stage → mark Mandatory/Optional → reorder stage → save workflow definition
+```
+
+The JSONB definition may include node IDs, labels, mandatory flags, ordering, visual positions, and simple edges. For v1, the workflow behaves as an ordered stage list.
+
+### 7.2 Mandatory and Optional Steps
+
+Mandatory steps:
+
+- Count toward progress percentage.
+- Determine whether a Task is complete.
+- Determine delayed status through the final mandatory step.
+
+Optional steps:
+
+- Appear in the Task timeline.
+- Do not count toward the main progress percentage.
+- Do not block Task completion when marked Not_Applicable.
+- Can still be completed when relevant.
+
+### 7.3 Task Workflow Snapshot
+
+When a Task is created:
+
+1. Read the ProjectWorkflow JSONB definition.
+2. Validate that it has at least one mandatory stage node.
+3. Create TaskWorkflowStep rows by copying node ID, label, mandatory flag, and order.
+4. Set all copied TaskWorkflowStep statuses to Pending.
+
+TaskWorkflowStep rows are the operational progress state used by dashboard and reporting. The JSONB definition is not mutated when Task progress changes.
+
+### 7.4 Editing Workflow After Tasks Exist
+
+- Workflow definition can be edited freely before Tasks exist.
+- After Tasks exist, existing TaskWorkflowStep rows must not be silently overwritten.
+- A future workflow rebuild/migration feature may be designed later.
+
+### 7.5 Future Workflow Extensibility
+
+v1 must not implement advanced workflow behaviour. However, the JSONB model should leave room for future additions such as:
+
+- branching;
+- condition rules;
+- runtime actions;
+- connectors;
+- extension points.
+
+Guardrails:
+
+- Keep future workflow concerns isolated around ProjectWorkflow.definition.
+- Do not spread assumptions about flat workflows across unrelated code.
+- Keep Task creation as the boundary where Workflow Definition becomes TaskWorkflowStep rows.
+- Do not build future workflow behaviour now.
+
+---
+
+## 8. Access Control and RBAC
 
 ### 8.1 v1 Access Model
 
@@ -455,18 +547,28 @@ The first MVP is owner-only:
 - User can create, update, and manage data inside owned Projects.
 - User cannot access Project-scoped data outside owned Projects.
 
-### 8.2 Future Collaboration Access
+Use Laravel Policies for authorization.
 
-Later, a Project owner may add Project members.
+### 8.2 No Spatie in v1
+
+Do not install Spatie Laravel Permission in v1.
+
+Reason:
+
+- v1 only needs owner-based Project access.
+- Future collaboration can start with a simple ProjectMember table and policies.
+- Spatie should only be reconsidered if roles and permissions become more complex than Owner/Member.
+
+### 8.3 Future Collaboration Access
 
 Future roles:
 
 - Owner
 - Member
 
-Do not build this until the single-user Project/Task flow is complete.
+Future access must remain application-level authorization. External identity providers should answer who the user is, not what Project the user can access.
 
-### 8.3 Policy Table
+### 8.4 Policy Table
 
 | Action | Owner | Future Member | Non-member |
 |---|---:|---:|---:|
@@ -475,84 +577,51 @@ Do not build this until the single-user Project/Task flow is complete.
 | Build Workflow before Tasks exist | Yes | No | No |
 | View Tasks | Yes | Future | No |
 | Create/update Tasks | Yes | Future | No |
-| Update Task stages | Yes | Future | No |
+| Update Task workflow steps | Yes | Future | No |
 | Manage Follow-Up Actions | Yes | Future | No |
 | Manage Document Links | Yes | Future | No |
 | View History | Yes | Future | No |
 | Manage Project Members | Future | No | No |
 
-Use Laravel Policies for authorization. Prefer 404 for inaccessible resources that should not be discoverable.
+Prefer 404 for inaccessible resources where resource discovery is a concern.
 
 ---
 
-## 9. Workflow Design
+## 9. Authentication
 
-### 9.1 v1 Workflow Builder
+### 9.1 v1 Auth
 
-The first MVP Workflow Builder is an ordered stage builder:
+Use Laravel session-based authentication in v1.
+
+Do not introduce Keycloak, OIDC, or external SSO for the first MVP.
+
+### 9.2 Future Keycloak / OIDC
+
+Keycloak or another OIDC provider may be added later when collaboration, organisation deployment, or SSO becomes a real need.
+
+Future mapping can use local User records:
 
 ```text
-Add stage → name stage → mark Mandatory/Optional → reorder stage → save workflow
+external_provider = keycloak
+external_id = OIDC subject identifier
 ```
 
-The user builds a workflow per Project. Each Project has one workflow.
+Guardrail:
 
-### 9.2 Mandatory and Optional Stages
+```text
+Authentication answers: who is this user?
+Application authorization answers: what Projects can this user access?
+```
 
-Mandatory stages:
-
-- Count toward progress percentage.
-- Determine whether a Task is complete.
-- Determine delayed status through the final mandatory stage.
-
-Optional stages:
-
-- Appear in the Task timeline.
-- Do not count toward the main progress percentage.
-- Do not block Task completion when marked Not_Applicable.
-- Can still be completed when relevant.
-
-### 9.3 Editing Workflow After Tasks Exist
-
-To protect existing task history:
-
-- Workflow stages can be edited freely before Tasks exist.
-- After Tasks exist, existing Task Workflow Stages must not be silently overwritten.
-- A future workflow rebuild feature may be designed later.
-
-### 9.4 Task Stage Initialization
-
-When a Task is created:
-
-1. Confirm the Project has at least one mandatory ProjectWorkflowStage.
-2. Fetch ProjectWorkflowStages ordered by `stage_order`.
-3. Create TaskWorkflowStages by copying name, order, and mandatory flag.
-4. Set all copied stages to Pending.
-
-### 9.5 Future Workflow Extensibility
-
-v1 must not implement advanced workflow behaviour. However, the model should leave room for future additions such as:
-
-- branching;
-- condition rules;
-- runtime actions;
-- connectors;
-- extension points.
-
-Guardrails:
-
-- Keep future workflow concerns isolated around ProjectWorkflow and ProjectWorkflowStage.
-- Do not spread assumptions about flat workflows across unrelated code.
-- Keep Task stage initialization as the boundary where Project Workflow becomes Task Workflow Stages.
-- Do not build future workflow behaviour now.
+Project access must remain enforced by Laravel Policies.
 
 ---
 
 ## 10. Status and Progress Logic
 
-### 10.1 Stage Status
+### 10.1 Task Workflow Step Status
 
-TaskWorkflowStage valid statuses:
+Valid statuses:
 
 ```text
 Pending
@@ -564,30 +633,30 @@ Blocked
 To_Be_Confirmed
 ```
 
-Any stage can move to any valid status. No strict linear progression is enforced.
+Any step can move to any valid status. No strict linear progression is enforced in v1.
 
-### 10.2 Active Stage
+### 10.2 Active Step
 
-Active stage selection:
+Active step selection:
 
-1. If one or more stages are In_Progress, use the In_Progress stage with the highest `stage_order`.
-2. If no stage is In_Progress, use the first mandatory stage that is not Completed and not Not_Applicable.
-3. If all mandatory stages are Completed, the Task is complete.
+1. If one or more steps are In_Progress, use the In_Progress step with the highest `step_order`.
+2. If no step is In_Progress, use the first mandatory step that is not Completed and not Not_Applicable.
+3. If all mandatory steps are Completed, the Task is complete.
 
 ### 10.3 Progress Percentage
 
 ```text
-progress = completed_mandatory_stage_count / mandatory_stage_count * 100
+progress = completed_mandatory_step_count / mandatory_step_count * 100
 ```
 
-Optional stages are shown in the timeline but excluded from the main percentage.
+Optional steps are shown in the timeline but excluded from the main percentage.
 
 ### 10.4 Delayed Task
 
 ```text
 is_delayed = target_completion_date exists
            AND target_completion_date < today
-           AND final mandatory stage is not Completed
+           AND final mandatory step is not Completed
 ```
 
 Delayed status is computed on read in v1.
@@ -608,13 +677,13 @@ Overdue status is computed on read in v1.
 
 Dashboard is scoped to one selected Project.
 
-Dashboard summary metrics:
+Metrics:
 
 | Metric | Calculation |
 |---|---|
 | Total Tasks | Count Tasks in selected Project |
-| Completed Tasks | Count Tasks where final mandatory stage is Completed |
-| In Progress Tasks | Count Tasks where final mandatory stage is not Completed |
+| Completed Tasks | Count Tasks where final mandatory step is Completed |
+| In Progress Tasks | Count Tasks where final mandatory step is not Completed |
 | Delayed Tasks | Count Tasks where delayed rule is true |
 | Overdue Follow-Ups | Count FollowUpActions where overdue rule is true |
 
@@ -625,9 +694,9 @@ Dashboard UI should include:
 - Project selector or active Project heading.
 - Summary cards.
 - Task list/table/cards.
-- Active stage indicator.
-- Mandatory-stage progress percentage.
-- Optional-stage indicators.
+- Active step indicator.
+- Mandatory-step progress percentage.
+- Optional-step indicators.
 - Delayed badge.
 - Overdue follow-up section.
 - Search and filters.
@@ -636,8 +705,6 @@ Dashboard UI should include:
 
 ## 12. UI Component Design
 
-Use reusable React components.
-
 Recommended components:
 
 | Component | Purpose |
@@ -645,11 +712,12 @@ Recommended components:
 | `AuthenticatedLayout` | Shared authenticated shell |
 | `ProjectSwitcher` | Select active Project |
 | `ProjectCard` | Project summary |
-| `WorkflowBuilder` | Build Project Workflow |
-| `WorkflowStageList` | Ordered stage list |
-| `StageRequirementBadge` | Mandatory/Optional label |
+| `WorkflowBuilder` | Build Project workflow definition |
+| `WorkflowCanvas` | Future-friendly visual area for workflow nodes; v1 may be simple list UI |
+| `WorkflowStepList` | Ordered step list |
+| `StepRequirementBadge` | Mandatory/Optional label |
 | `TaskCard` | Task summary |
-| `TaskProgressTimeline` | Task stage timeline |
+| `TaskProgressTimeline` | Task step timeline |
 | `StatusBadge` | Status display |
 | `DashboardSummaryCards` | Project metrics |
 | `FollowUpActionPanel` | Follow-up action list/manage UI |
@@ -663,7 +731,7 @@ UI guardrails:
 - MYDS-inspired typography and component discipline.
 - FontAwesome icons.
 - No dense enterprise-table-only interface for the main dashboard.
-- Keep workflow builder simple for v1.
+- Workflow Builder must stay simple in v1 but not be visually designed in a way that blocks a future canvas/graph builder.
 
 ---
 
@@ -672,10 +740,11 @@ UI guardrails:
 Validation errors:
 
 - Missing Project name.
-- Missing Workflow stage name.
-- Workflow with no mandatory stage.
-- Task creation before Project has mandatory Workflow stage.
-- Invalid Task stage status.
+- Invalid Workflow Definition JSON shape.
+- Workflow Definition with no mandatory stage node.
+- Missing workflow stage label.
+- Task creation before Project has valid mandatory workflow stage.
+- Invalid Task workflow step status.
 - Invalid Follow-Up Action status.
 - Invalid document URL.
 
@@ -683,7 +752,7 @@ Business rule errors:
 
 - User cannot access another user's Project.
 - User cannot create or update records outside owned Projects.
-- Existing Task Workflow Stages must not be silently overwritten after workflow changes.
+- Existing TaskWorkflowStep rows must not be silently overwritten after workflow changes.
 
 Auth errors:
 
@@ -698,7 +767,7 @@ Events:
 
 | Event | Trigger | Listener |
 |---|---|---|
-| `TaskStageStatusChanged` | TaskWorkflowStage status changes | Writes AuditEntry |
+| `TaskWorkflowStepStatusChanged` | TaskWorkflowStep status changes | Writes AuditEntry |
 | `FollowUpActionStatusChanged` | FollowUpAction status changes | Writes AuditEntry |
 
 AuditEntry must include:
@@ -715,37 +784,34 @@ AuditEntry must include:
 
 ## 15. Testing Strategy
 
-### Feature Tests
-
-Cover:
+Feature tests:
 
 - Login and authenticated access.
 - Project creation.
 - Project ownership access.
-- Workflow building with mandatory/optional stages.
-- Blocking Task creation when Project has no mandatory stage.
-- Task creation copies Project Workflow stages.
-- Task stage status update.
+- Workflow definition creation using JSONB.
+- Workflow definition validation, including mandatory/optional nodes.
+- Blocking Task creation when Project has no mandatory workflow node.
+- Task creation copies workflow definition into TaskWorkflowStep rows.
+- Task workflow step status update.
 - Follow-Up Action create/update.
 - Document Link create/view/remove.
 - Dashboard summary counts.
 - Search/filter within selected Project.
 - Cross-project access denial.
 
-### Unit Tests
+Unit tests:
 
-Cover action classes and logic for:
-
+- Workflow definition validation.
+- Workflow-to-task snapshot creation.
 - Progress percentage.
-- Active stage selection.
+- Active step selection.
 - Delayed calculation.
 - Overdue calculation.
 - Month-end target date conversion.
 - Audit entry creation.
 
-### Property-Style Tests
-
-Use selectively for:
+Property-style tests:
 
 - Month-end target conversion.
 - Delayed calculation across date/status combinations.
@@ -758,7 +824,7 @@ Use selectively for:
 
 The project is container-first.
 
-Required on host:
+Host requirements:
 
 - Docker Desktop
 - Git
@@ -770,14 +836,14 @@ Docker services:
 |---|---|
 | app | Laravel application |
 | node | Frontend build tooling |
-| db | MySQL |
+| db | PostgreSQL |
 
 Seeders should provide:
 
 - Default local user.
 - Sample Projects.
-- Sample Project Workflows with mandatory and optional stages.
-- Sample Tasks with varied stage statuses.
+- Sample Project Workflow definitions in JSONB.
+- Sample Tasks with copied workflow steps and varied statuses.
 - Sample Follow-Up Actions.
 - Sample Document Links.
 
@@ -793,10 +859,11 @@ Checks:
 
 1. Composer install.
 2. Frontend install/build as required for Inertia asset manifest.
-3. Migrations.
-4. PestPHP tests.
-5. PHPStan.
-6. Laravel Pint.
+3. PostgreSQL database setup.
+4. Migrations.
+5. PestPHP tests.
+6. PHPStan.
+7. Laravel Pint.
 
 PRs should not be merged if CI fails.
 
@@ -808,10 +875,10 @@ Required docs:
 
 | File | Contents |
 |---|---|
-| `docs/architecture.md` | Project/Workflow/Task architecture |
-| `docs/setup.md` | Container-first setup |
+| `docs/architecture.md` | Laravel/Inertia/PostgreSQL/JSONB architecture |
+| `docs/setup.md` | Container-first PostgreSQL setup |
 | `docs/project-structure.md` | Backend and frontend structure |
-| `docs/workflow-status.md` | Workflow, mandatory/optional stages, status, progress, delayed, overdue logic |
+| `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
 | `docs/testing.md` | Testing approach |
 | `docs/ci.md` | CI checks |
 | `docs/user-guide.md` | User guide for Projects, Workflows, Tasks, and Dashboard |
