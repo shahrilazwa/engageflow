@@ -12,7 +12,7 @@ User → Project → Custom Project Workflow → Tasks → Workflow Stages / Act
 
 A user can create multiple Projects, build a custom Workflow for each Project, create Tasks inside each Project, and monitor progress through visual workflow stages. Collaboration through Project members is a lower-priority extension and must not block the first MVP.
 
-There is no separate Special Project track in v1. If a user needs to track a different stream of work, they should create another Project. Flexibility inside a Project is handled through custom workflow stages and mandatory/optional stage settings.
+If a user needs to track a different stream of work, they should create another Project. Flexibility inside a Project is handled through custom workflow stages and mandatory/optional stage settings.
 
 The system is built as a **modular monolith** for v1. Module boundaries are clear enough to keep the codebase organised, but the app remains one Laravel application. There are no microservices in v1.
 
@@ -35,7 +35,7 @@ The system is built as a **modular monolith** for v1. Module boundaries are clea
 
 ### Style: Layered Modular Monolith
 
-EngageFlow is a single Laravel application using a layered modular monolith architecture. The app is not split into microservices in v1. Instead, the codebase is organised around feature modules with clear responsibilities and predictable dependencies.
+EngageFlow is a single Laravel application using a layered modular monolith architecture. The app is not split into microservices in v1. Instead, the codebase is organised around feature areas with clear responsibilities and predictable dependencies.
 
 The architecture should be easy for a Laravel developer to understand and maintain:
 
@@ -48,7 +48,7 @@ HTTP Controllers
         ↓
 Form Requests + Policies
         ↓
-Service / Action Classes
+Application Services / Actions
         ↓
 Eloquent Models + Database Transactions
         ↓
@@ -66,7 +66,7 @@ React form submits through Inertia
 → Controller receives request
 → Form Request validates input
 → Policy checks project access
-→ Service/Action performs business operation inside transaction if needed
+→ Application Service/Action performs business operation inside transaction if needed
 → Event is fired for audit/history side effects if needed
 → Controller redirects or returns Inertia response
 ```
@@ -76,7 +76,7 @@ A normal read request should follow this flow:
 ```text
 React page requests route
 → Controller checks policy/access
-→ Service queries project-scoped data
+→ Application Service queries project-scoped data
 → Controller returns Inertia page props
 → React components render the page
 ```
@@ -87,10 +87,10 @@ React page requests route
 |---|---|---|
 | Inertia React UI | Pages, layouts, forms, reusable components | No business rules beyond basic UI state |
 | Routes | Map URLs to controllers | Keep route files readable and grouped by feature |
-| Controllers | Orchestrate validation, authorization, service calls, Inertia responses | Keep thin; do not place business logic here |
+| Controllers | Orchestrate validation, authorization, application service calls, Inertia responses | Keep thin; do not place business logic here |
 | Form Requests | Validate input | Reusable validation rules where useful |
 | Policies | Enforce Project ownership/membership access | Never rely only on hidden UI controls |
-| Services/Actions | Core business rules and transactions | Main home for project/workflow/task logic |
+| Application Services/Actions | Core business rules and transactions | Main home for project/workflow/task logic |
 | Models | Eloquent relationships, casts, simple computed helpers | Avoid fat models for complex workflows |
 | Events/Listeners | Audit/history and future side effects | Do not block core operations with unrelated side effects |
 | Database | MySQL persistence | Migrations are append-only after merge |
@@ -143,7 +143,7 @@ app/
   Listeners/
 ```
 
-A strict `app/Modules` structure is not required if it makes normal Laravel development harder. The important rule is clear feature grouping, thin controllers, project-scoped policies, and service/action classes for business logic.
+A strict `app/Modules` structure is not required if it makes normal Laravel development harder. The important rule is clear feature grouping, thin controllers, project-scoped policies, and application service/action classes for business logic.
 
 ### Frontend Organisation
 
@@ -193,9 +193,9 @@ All queries must be scoped through the selected Project. Do not query Tasks, Sta
 
 ### Future API Readiness
 
-The first MVP uses Inertia React. JSON APIs are not required for the first MVP, but the service/action layer should make future API controllers possible without rewriting business logic.
+The first MVP uses Inertia React. JSON APIs are not required for the first MVP, but the application service/action layer should make future API controllers possible without rewriting business logic.
 
-Do not build a separate API layer now unless required by a task. The priority is a clean web app with reusable backend services.
+Do not build a separate API layer now unless required by a task. The priority is a clean web app with reusable backend application services.
 
 ---
 
@@ -220,7 +220,7 @@ Cross-module rules:
 - `WorkflowBuilder` owns Project Workflow definition.
 - `TaskTracking` creates Tasks and asks `WorkflowBuilder` for the Project Workflow stages.
 - `WorkflowStageTracking` updates copied Task stages, not the Project Workflow definition.
-- `Dashboard` reads from Project, Task, Stage, Follow-Up, and Document modules through service/action classes.
+- `Dashboard` reads from Project, Task, Stage, Follow-Up, and Document modules through application service/action classes.
 - `AuditHistoryTracking` listens to status-change events and writes audit records.
 - `ProjectMembership` is lower priority and should not be built before the single-user Project/Task workflow is complete.
 
@@ -307,7 +307,7 @@ ProjectMember  // collaboration extension
 
 - `id`, `project_id`, `title`, `description` nullable, `target_completion_date` nullable, timestamps
 - A Task belongs to one Project.
-- A Task is not associated with an agency, ministry, company, or organisation.
+- A Task is not tied to any user profile organisation.
 - Delayed status is computed on read.
 
 **TaskWorkflowStage**
@@ -344,7 +344,7 @@ ProjectMember  // collaboration extension
 
 ---
 
-## Service / Action Classes
+## Application Services / Action Classes
 
 **ProjectService**
 
@@ -445,7 +445,7 @@ Laravel Policies should centralise access checks. Do not rely only on UI hiding.
 - Optional stages represent steps that may apply only to some Tasks within the Project.
 - Optional stages are included in the Task timeline for visibility, but they should not block completion if marked Not_Applicable.
 - The user can still mark optional stages as Completed when they are relevant.
-- Optional stages allow one Project Workflow to support flexible streams without requiring a separate Special Project model.
+- Optional stages allow one Project Workflow to support flexible streams without requiring a separate tracking model.
 
 ### Editing Workflow After Tasks Exist
 
