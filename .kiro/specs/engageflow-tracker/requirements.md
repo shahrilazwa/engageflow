@@ -17,7 +17,7 @@ Create Project
 → View Project dashboard
 ```
 
-The app does not need to know which agency, ministry, company, or organisation a User belongs to. In the first MVP, Project access is owner-only. Collaboration through Project members can be added later after the single-user workflow is stable.
+The app does not need a user profile organisation model in v1. In the first MVP, Project access is owner-only. Collaboration through Project members can be added later after the single-user workflow is stable.
 
 The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work, but the underlying model is generic. Different Projects may use different visual workflows, such as GovTech libat urus, procurement, Citizen Lab, internal planning, product launch, or any other trackable workstream.
 
@@ -45,7 +45,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 - **Follow_Up_Action**: A follow-up action associated with a Task, with a title, due date, status, and remarks.
 - **Document_Link**: An external URL attached to a Task, Task_Workflow_Step, Task_Deliverable, or Follow_Up_Action.
 - **Target_Completion**: The expected date by which a Task should complete its final mandatory Task_Workflow_Step.
-- **Progress_View**: The visual display of Task and Project progress.
+- **Project_Dashboard**: The selected-Project screen that displays Project progress, Tasks, delayed work, overdue work, deliverables, and follow-up items.
 - **Audit_Entry**: A record of status changes for Task_Workflow_Steps, Task_Deliverables, and Follow_Up_Actions.
 
 ---
@@ -81,7 +81,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 6. THE Tracker SHALL allow the Project_Owner to update the Project name and description.
 7. THE Tracker SHALL create or make available one Visual_Workflow_Definition for each Project.
 8. THE Tracker SHALL scope all Project data, including Visual_Workflow_Definition, Tasks, Task_Workflow_Steps, Task_Deliverables, Follow_Up_Actions, Document_Links, dashboard data, and Audit_Entries, to the selected Project.
-9. THE Tracker SHALL NOT require a User to declare their agency, ministry, company, or organisation before creating a Project.
+9. THE Tracker SHALL NOT require a user profile organisation before creating a Project.
 
 ---
 
@@ -104,6 +104,10 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 11. THE Visual_Workflow_Builder SHALL prevent saving a workflow that has no mandatory workflow stage node.
 12. THE Visual_Workflow_Builder SHALL allow only Users who can access the Project to open the builder.
 13. THE Visual_Workflow_Builder SHALL allow only the Project_Owner to save workflow changes in v1.
+14. BEFORE Tasks exist in a Project, THE Visual_Workflow_Builder SHALL allow the Project_Owner to change workflow nodes, labels, mandatory flags, order, edges, positions, and viewport/layout metadata.
+15. AFTER Tasks exist in a Project, THE Visual_Workflow_Builder SHALL allow layout-only changes such as node positions and viewport/layout metadata.
+16. AFTER Tasks exist in a Project, THE Visual_Workflow_Builder SHALL block structural workflow changes that would affect Task_Workflow_Step snapshots, including adding nodes, removing nodes, changing labels, changing mandatory flags, changing order, or changing edges.
+17. THE Tracker MAY later support workflow migration/rebuild features, but that is outside v1.
 
 ---
 
@@ -124,6 +128,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 9. THE Tracker SHALL reject workflow definitions with missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, or invalid node order.
 10. THE Tracker SHALL use JSONB for the workflow definition so the model can later support richer workflow graph features.
 11. THE Tracker SHALL NOT implement branching, conditional execution, runtime actions, connectors, webhooks, hooks, or automation in v1.
+12. THE Tracker SHALL preserve existing Task_Workflow_Step snapshots when the Project workflow layout is changed after Tasks exist.
 
 ---
 
@@ -158,7 +163,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 4. THE Tracker SHALL allow setting a Target_Completion date for each Task.
 5. IF the User only knows the target month, THE Tracker SHALL accept a month selection and use the last day of that month as the Target_Completion date.
 6. THE Tracker SHALL display the Target_Completion date alongside Task progress.
-7. THE Tracker SHALL NOT require a Task to be associated with an agency, ministry, company, or organisation.
+7. THE Tracker SHALL NOT require a Task to be associated with any user profile organisation.
 8. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Tasks.
 
 ---
@@ -192,10 +197,11 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 6. THE Tracker SHALL allow updating Task_Deliverable details and status.
 7. THE Tracker SHALL treat Task_Deliverables as expected outputs, not merely generic document links.
 8. THE Tracker SHALL allow a Task_Deliverable to have one or more Document_Links attached.
-9. THE Tracker SHALL show Deliverable status on the Task detail screen.
-10. THE Tracker SHALL summarize Deliverable status on Task cards or Task lists without overwhelming the workflow progress display.
-11. THE Tracker SHALL record Deliverable_Status changes in Audit_Entries.
-12. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Task_Deliverables.
+9. WHEN the current date exceeds a Task_Deliverable due date and its status is Pending or In_Progress, THE Tracker SHALL flag the Task_Deliverable as overdue.
+10. THE Tracker SHALL show Deliverable status on the Task detail screen.
+11. THE Tracker SHALL summarize Deliverable status on Task cards or Task lists without overwhelming the workflow progress display.
+12. THE Tracker SHALL record Deliverable_Status changes in Audit_Entries.
+13. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Task_Deliverables.
 
 ---
 
@@ -229,7 +235,7 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 3. THE Tracker SHALL support these Follow_Up_Action statuses: Open, In_Progress, Done, Cancelled.
 4. THE Tracker SHALL display pending Follow_Up_Actions where status is Open or In_Progress.
 5. WHEN the current date exceeds the due date of a Follow_Up_Action and its status is not Done or Cancelled, THE Tracker SHALL flag it as overdue.
-6. THE Progress_View SHALL display overdue Follow_Up_Actions prominently for the selected Project.
+6. THE Project_Dashboard SHALL display overdue Follow_Up_Actions prominently for the selected Project.
 7. THE Tracker SHALL record Follow_Up_Action status changes in Audit_Entries.
 8. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Follow_Up_Actions.
 
@@ -241,28 +247,30 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 
 #### Acceptance Criteria
 
-1. THE Progress_View SHALL display Task_Workflow_Steps as a visual timeline or progress indicator for each Task.
-2. THE Progress_View SHALL visually distinguish different Step_Status values.
-3. THE Progress_View SHALL display the current active Task_Workflow_Step prominently for each Task.
-4. THE Progress_View SHALL calculate progress using mandatory Task_Workflow_Steps only.
-5. THE Progress_View SHALL show optional Task_Workflow_Steps without counting them in the main progress percentage.
-6. THE Progress_View SHALL display Task_Deliverable status separately from workflow progress.
+1. THE Project_Dashboard SHALL display Task_Workflow_Steps as a visual timeline or progress indicator for each Task.
+2. THE Project_Dashboard SHALL visually distinguish different Step_Status values.
+3. THE Project_Dashboard SHALL display the current active Task_Workflow_Step prominently for each Task.
+4. THE Project_Dashboard SHALL calculate progress using mandatory Task_Workflow_Steps only.
+5. THE Project_Dashboard SHALL show optional Task_Workflow_Steps without counting them in the main progress percentage.
+6. THE Project_Dashboard SHALL display Task_Deliverable status separately from workflow progress.
 7. THE Tracker SHALL show Task progress only to Users who can access the parent Project.
 
 ---
 
 ### Requirement 12: Identify Delayed Tasks and Overdue Work
 
-**User Story:** As a Project_User, I want to identify delayed Tasks and overdue follow-up actions, so that I can prioritize what needs attention.
+**User Story:** As a Project_User, I want to identify delayed Tasks and overdue work, so that I can prioritize what needs attention.
 
 #### Acceptance Criteria
 
 1. WHEN the current date exceeds the Target_Completion date and the Task's final mandatory Task_Workflow_Step is not Completed, THE Tracker SHALL flag the Task as delayed.
-2. THE Progress_View SHALL provide a filtered view showing delayed Tasks within the selected Project.
-3. THE Progress_View SHALL visually highlight delayed Tasks distinctly from on-track Tasks.
+2. THE Project_Dashboard SHALL provide a filtered view showing delayed Tasks within the selected Project.
+3. THE Project_Dashboard SHALL visually highlight delayed Tasks distinctly from on-track Tasks.
 4. WHEN the current date exceeds a Follow_Up_Action due date and its status is not Done or Cancelled, THE Tracker SHALL flag the Follow_Up_Action as overdue.
-5. THE Progress_View SHALL display overdue Follow_Up_Actions prominently within the selected Project.
-6. THE Tracker SHALL not require background jobs for delayed or overdue calculation in v1; these may be computed on read.
+5. THE Project_Dashboard SHALL display overdue Follow_Up_Actions prominently within the selected Project.
+6. WHEN the current date exceeds a Task_Deliverable due date and its status is Pending or In_Progress, THE Tracker SHALL flag the Task_Deliverable as overdue.
+7. THE Project_Dashboard SHALL display overdue Task_Deliverables prominently within the selected Project.
+8. THE Tracker SHALL not require background jobs for delayed or overdue calculation in v1; these may be computed on read.
 
 ---
 
@@ -272,17 +280,18 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 
 #### Acceptance Criteria
 
-1. THE Progress_View SHALL display a dashboard scoped to one selected Project.
-2. THE dashboard SHALL display the total number of Tasks in the selected Project.
-3. THE dashboard SHALL display the count of Tasks whose final mandatory Task_Workflow_Step is Completed.
-4. THE dashboard SHALL display the count of Tasks still in progress.
-5. THE dashboard SHALL display the count of delayed Tasks.
-6. THE dashboard SHALL display the count of overdue Follow_Up_Actions.
-7. THE dashboard SHALL display the count of pending or in-progress Task_Deliverables.
-8. THE dashboard SHALL provide a link or button to open the Visual_Workflow_Builder for the selected Project.
-9. THE dashboard SHALL present Project progress using visual elements such as summary cards, badges, timelines, lists, or simple charts.
-10. THE dashboard SHALL not mix counts across Projects unless a future cross-project dashboard is explicitly added.
-11. THE dashboard SHALL use relational Task_Workflow_Step, Task_Deliverable, Follow_Up_Action, and Task data for routine dashboard counts rather than parsing raw workflow JSON.
+1. THE Project_Dashboard SHALL display a dashboard scoped to one selected Project.
+2. THE Project_Dashboard SHALL display the total number of Tasks in the selected Project.
+3. THE Project_Dashboard SHALL display the count of Tasks whose final mandatory Task_Workflow_Step is Completed.
+4. THE Project_Dashboard SHALL display the count of Tasks still in progress.
+5. THE Project_Dashboard SHALL display the count of delayed Tasks.
+6. THE Project_Dashboard SHALL display the count of overdue Follow_Up_Actions.
+7. THE Project_Dashboard SHALL display the count of pending or in-progress Task_Deliverables.
+8. THE Project_Dashboard SHALL display the count of overdue Task_Deliverables.
+9. THE Project_Dashboard SHALL provide a link or button to open the Visual_Workflow_Builder for the selected Project.
+10. THE Project_Dashboard SHALL present Project progress using visual elements such as summary cards, badges, timelines, lists, or simple charts.
+11. THE Project_Dashboard SHALL not mix counts across Projects unless a future cross-project dashboard is explicitly added.
+12. THE Project_Dashboard SHALL use relational Task_Workflow_Step, Task_Deliverable, Follow_Up_Action, and Task data for routine dashboard counts rather than parsing raw workflow JSON.
 
 ---
 
@@ -296,8 +305,9 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 2. THE Tracker SHALL provide filtering by Step_Status within the selected Project.
 3. THE Tracker SHALL provide filtering by delayed status within the selected Project.
 4. THE Tracker SHALL provide filtering by Deliverable_Status within the selected Project.
-5. THE Tracker SHALL display filtered results in the Progress_View.
-6. THE Tracker SHALL not return Tasks from Projects the User cannot access.
+5. THE Tracker SHALL provide filtering by overdue Task_Deliverable status within the selected Project.
+6. THE Tracker SHALL display filtered results in the Project_Dashboard.
+7. THE Tracker SHALL not return Tasks from Projects the User cannot access.
 
 ---
 
@@ -381,12 +391,14 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 9. **Laravel session auth retained**: No Keycloak/OIDC/SSO for v1.
 10. **Laravel Policies retained**: No Spatie Laravel Permission for v1.
 11. **No global Admin role in v1**: Access is based on Project ownership and later Project membership.
-12. **No agency/company profile required**: EngageFlow does not need to know a User's agency, ministry, company, or organisation.
+12. **No user profile organisation required**: EngageFlow does not need a user profile organisation model in v1.
 13. **Task Deliverables are first-class**: Deliverables are expected Task outputs and are separate from generic Document_Links.
 14. **Document links are external URLs only**: No file upload or external repository API integration in v1.
 15. **Workflow v1 is visual but not automation**: V1 supports visual ordered-stage workflow creation, not branching/conditions/hooks/connectors/runtime execution.
-16. **Dashboard is Project-scoped**: No cross-project dashboard in v1.
-17. **Delayed and overdue status can be computed on read**: No queue or background job is required for v1 delayed/overdue calculation.
+16. **Workflow editing is restricted after Tasks exist**: V1 allows layout-only workflow changes after Tasks exist and blocks structural changes until a future workflow migration/rebuild feature exists.
+17. **Dashboard is Project-scoped**: No cross-project dashboard in v1.
+18. **Delayed and overdue status can be computed on read**: No queue or background job is required for v1 delayed/overdue calculations.
+19. **Deliverables can be overdue**: A Task_Deliverable is overdue when its due date has passed and its status is Pending or In_Progress.
 
 ---
 
