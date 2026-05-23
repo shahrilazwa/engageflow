@@ -25,6 +25,7 @@ The system is built as a **modular monolith** for v1. Module boundaries are clea
 - Track task progress, target completion, delayed status, follow-up actions, document links, and history.
 - Keep Project data strictly scoped to the owning user in the first MVP.
 - Keep collaboration/project membership as a later extension.
+- Keep the Workflow design simple for v1 while leaving room for advanced workflow capabilities later.
 - Use Inertia React for all application screens; Blade is only the root Inertia view.
 - Keep the UI clean, white-based, MYDS-aligned, and componentised.
 
@@ -147,6 +148,7 @@ ProjectMember  // collaboration extension
 - One Project has one ProjectWorkflow.
 - Represents the user-built workflow definition for the Project.
 - It is the blueprint used to create Task stages.
+- It should remain isolated as the main extension point for future advanced workflow capabilities.
 
 **ProjectWorkflowStage**
 
@@ -307,6 +309,23 @@ Laravel Policies should centralise access checks. Do not rely only on UI hiding.
 - Once Tasks exist, existing TaskWorkflowStages are preserved.
 - A future workflow rebuild/migration feature may be added later, but it is out of scope for the first MVP.
 
+### Future Workflow Extensibility
+
+The first MVP implements a simple ordered stage workflow only. The design should still leave room for future advanced workflow capabilities such as branching, condition rules, runtime actions, external connectors, and extension points.
+
+For v1, do not implement these future capabilities. Keep the Workflow Builder focused on:
+
+```text
+Add stage → name stage → mark Mandatory/Optional → reorder stage → save workflow
+```
+
+Design guardrails:
+
+- Keep workflow data isolated in ProjectWorkflow and ProjectWorkflowStage so future workflow capabilities can extend those concepts without rewriting Project, Task, FollowUpAction, DocumentLink, Dashboard, or AuditHistory from scratch.
+- Avoid spreading workflow assumptions throughout unrelated modules.
+- Keep Task stage initialization as the only place that copies the Project Workflow into TaskWorkflowStage records.
+- Do not build future workflow capabilities now.
+
 ### Task Stage Initialization
 
 When a Task is created:
@@ -448,7 +467,7 @@ The first MVP Workflow Builder should be simple:
 Add stage → name stage → mark Mandatory/Optional → reorder stage → save workflow
 ```
 
-Do not implement branching workflows, conditional logic, execution flows, or integrations in the first MVP.
+Keep the UI and component boundaries clean enough that future advanced workflow capabilities can be added later. Do not implement those future capabilities in the first MVP.
 
 ---
 
