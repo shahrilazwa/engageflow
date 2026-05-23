@@ -6,7 +6,7 @@ EngageFlow is a Laravel + Inertia React application for visually designing proje
 
 The v1 product is **project-first**, **workflow-first**, **visual-builder-first**, and **single-user-first**. A user can create multiple Projects, visually design the workflow for each Project, create Tasks inside the Project, record expected Deliverables for each Task, and track progress through visual workflow steps, dashboards, follow-up actions, document links, and status history.
 
-The **Visual Workflow Builder is a core v1 feature**. It is not a later enhancement. The first MVP must support visual creation of an ordered stage workflow using a canvas-like interface. The visual builder does not need automation, branching rules, runtime actions, hooks, connectors, or integrations in v1.
+The **Visual Workflow Builder** and its **WorkflowCanvas** are core v1 features. They are not future enhancements. The first MVP must support visual creation of an ordered stage workflow using a canvas-like interface. The visual builder does not need automation, branching rules, runtime actions, hooks, connectors, or integrations in v1.
 
 Core v1 model:
 
@@ -38,7 +38,7 @@ If a user needs to track a different stream of work, they create another Project
 |---|---|---|
 | Backend framework | Laravel | Keep Laravel for MVP; it fits auth, policies, actions, migrations, tests, and dashboard workflows |
 | Frontend | Inertia.js + React | Required because the visual workflow builder needs a rich React UI |
-| Visual workflow UI | React-based canvas builder | Core v1 feature, not a future enhancement |
+| Visual workflow UI | React-based WorkflowCanvas | Core v1 feature, not a future enhancement |
 | Database | PostgreSQL | Replaces MySQL because workflow definitions benefit from JSONB |
 | Workflow definition storage | PostgreSQL JSONB | Source of truth for visual Project workflow design and layout |
 | Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, deliverables, and audit data stay relational |
@@ -77,19 +77,19 @@ These may be reconsidered later only when the product need is real.
 - User can log in using Laravel session authentication.
 - User can create and manage multiple Projects.
 - Each Project has one Visual Workflow Definition stored as JSONB.
-- User can visually create and edit a Project Workflow using a canvas-like Visual Workflow Builder.
-- Visual Workflow Builder supports ordered stage-style workflows for v1.
+- User can visually create and edit a Project Workflow using the WorkflowCanvas inside the Visual Workflow Builder.
+- WorkflowCanvas supports ordered stage-style workflows for v1.
 - User can add workflow stage nodes.
 - User can edit workflow stage labels.
 - User can mark workflow stage nodes as Mandatory or Optional.
 - User can drag/reposition workflow nodes visually.
 - User can reorder the workflow stage sequence before Tasks exist.
-- Visual Workflow Builder shows simple edges/connectors between ordered workflow stage nodes.
-- Visual Workflow Builder stores node position and viewport data in JSONB so the visual layout can be restored later.
-- After Tasks exist, Visual Workflow Builder allows layout-only changes and blocks structural workflow changes in v1.
+- WorkflowCanvas shows simple edges/connectors between ordered workflow stage nodes.
+- WorkflowCanvas stores node position and viewport data in JSONB so the visual layout can be restored later.
+- After Tasks exist, WorkflowCanvas allows layout-only changes and blocks structural workflow changes in v1.
 - User can create Tasks only after the Project workflow has at least one mandatory workflow node.
 - Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
-- User can update Task Workflow Step status.
+- User can update Task Workflow Step status outside the WorkflowCanvas.
 - User can set a target completion date for a Task.
 - User can record Task Deliverables such as documents, slide decks, spreadsheets, Figma/design files, repository links, URLs, or other outputs.
 - Dashboard shows Project-scoped progress, delayed Tasks, overdue Follow-Up Actions, pending Deliverables, and overdue Deliverables.
@@ -131,11 +131,12 @@ It remains one Laravel application. The codebase is organised by feature area us
 ```text
 React / Inertia Pages and Components
     ├── Visual Workflow Builder
-    │   ├── Workflow Canvas
-    │   ├── Workflow Nodes
-    │   ├── Workflow Edges
-    │   ├── Step Inspector
-    │   └── Builder Toolbar
+    │   ├── WorkflowCanvas
+    │   ├── WorkflowNode
+    │   ├── WorkflowEdge
+    │   ├── WorkflowStepInspector
+    │   ├── WorkflowToolbar
+    │   └── WorkflowStepList
     └── Project / Task / Dashboard Screens
         ↓
 Laravel Routes
@@ -158,8 +159,8 @@ PostgreSQL
 Saving a visual workflow definition follows this flow:
 
 ```text
-User edits workflow on React canvas
-→ Workflow Builder updates local nodes/edges/viewport state
+User edits workflow on WorkflowCanvas
+→ WorkflowBuilder updates local nodes/edges/viewport state
 → User saves workflow
 → Inertia submits JSON workflow definition
 → Controller receives request
@@ -178,7 +179,7 @@ User opens Project Workflow Builder
 → Controller checks Project access
 → Query/action loads ProjectWorkflow.definition
 → Controller returns workflow definition as Inertia props
-→ React Workflow Builder reconstructs nodes, edges, positions, and viewport
+→ React WorkflowBuilder reconstructs WorkflowCanvas nodes, edges, positions, and viewport
 ```
 
 ### 4.3 Task Creation Flow from Visual Workflow
@@ -217,7 +218,7 @@ Use JSONB for the Project Workflow Definition because its shape may evolve from 
 | Layer | Responsibility | Guardrail |
 |---|---|---|
 | React/Inertia UI | Pages, forms, layouts, reusable components, visual workflow builder | No trusted business rules beyond local UI behaviour |
-| Workflow Canvas Components | Visual editing of nodes, edges, positions, viewport, selected step | Must remain reusable and isolated from Task/Dashboard logic |
+| WorkflowCanvas components | Visual editing of nodes, edges, positions, viewport, selected step | Must remain reusable and isolated from Task/Dashboard logic |
 | Routes | Map URLs to controllers | Keep grouped by feature |
 | Controllers | Authorize, call actions, return Inertia responses | Keep thin |
 | Form Requests | Validate HTTP input, including workflow JSON shape | Keep validation at boundary |
@@ -339,7 +340,7 @@ Frontend guardrails:
 - Blade is only for the root Inertia view.
 - Visual Workflow Builder is a core v1 screen and should be implemented early.
 - Keep workflow builder components lego-style and reusable.
-- Keep workflow canvas state isolated from Task and Dashboard components.
+- Keep WorkflowCanvas state isolated from Task and Dashboard components.
 - Avoid one giant workflow builder component.
 - Avoid one giant dashboard component.
 - UI may hide unavailable actions, but backend policies must enforce access.
@@ -353,6 +354,7 @@ Frontend guardrails:
 |---|---|
 | Project Management | Create, update, list, and select Projects owned by the user |
 | Visual Workflow Builder | Canvas-like creation and editing of Project workflow nodes, edges, positions, order, and mandatory/optional settings |
+| WorkflowCanvas Application | Applies canvas UI as the design-time surface for Project workflow definitions only |
 | Workflow Definition Management | Validate, normalize, save, load, and detect structural changes in `ProjectWorkflow.definition` JSONB |
 | Task Tracking | Create, update, list, search, and filter Tasks inside a Project |
 | Task Workflow Snapshot | Convert Project workflow JSONB nodes into relational TaskWorkflowStep rows |
@@ -368,6 +370,7 @@ Feature dependency rules:
 
 - Project Management owns Projects.
 - Visual Workflow Builder edits ProjectWorkflow JSONB definition.
+- WorkflowCanvas is used only inside the Visual Workflow Builder screen.
 - Workflow Definition Management validates and persists the JSONB definition.
 - Task Tracking creates Tasks but must call Task Workflow Snapshot logic to create TaskWorkflowStep rows.
 - Stage / Step Tracking updates copied TaskWorkflowStep rows only.
@@ -463,7 +466,7 @@ Rules:
 
 - One Project has one ProjectWorkflow.
 - `definition` is the source of truth for the Project workflow design and visual layout.
-- The visual builder reads from and writes to `definition`.
+- WorkflowCanvas reads from and writes to `definition` through the Visual Workflow Builder.
 - Keep this entity isolated as the extension point for future workflow capability.
 - Do not create a relational table for each workflow design concern unless there is a clear reporting/query need.
 
@@ -706,7 +709,54 @@ Open Project Workflow
 
 The visual builder should show workflow nodes on a canvas-like area. V1 keeps the underlying logic as an ordered stage sequence, but the user experience should feel visual rather than only a plain form/table.
 
-### 8.2 Visual Builder Modules
+### 8.2 How WorkflowCanvas Is Applied
+
+WorkflowCanvas is the **design-time surface** for a Project workflow. It is used only inside the Visual Workflow Builder screen.
+
+WorkflowCanvas is responsible for:
+
+- rendering workflow stage nodes;
+- rendering simple visual edges/connectors between ordered stages;
+- allowing node drag/reposition interactions;
+- maintaining local canvas state for nodes, edges, selected node, viewport position, and zoom;
+- passing selected node data to WorkflowStepInspector;
+- passing saveable workflow definition data back to WorkflowBuilder.
+
+WorkflowCanvas is **not** responsible for:
+
+- updating TaskWorkflowStep status;
+- calculating Task progress;
+- rendering the Project dashboard;
+- managing Task Deliverables;
+- managing Follow-Up Actions;
+- executing workflow automation;
+- evaluating conditions or branching logic.
+
+The separation is:
+
+```text
+WorkflowCanvas = design-time Project workflow editor
+TaskProgressTimeline = runtime/progress display for each Task
+Project_Dashboard = operational summary using relational Task data
+```
+
+Main usage flow:
+
+```text
+Project Dashboard
+→ Open Visual Workflow Builder
+→ WorkflowBuilder loads ProjectWorkflow.definition JSONB
+→ WorkflowCanvas renders nodes, edges, positions, and viewport
+→ User adds/moves/selects nodes on canvas
+→ WorkflowStepInspector edits selected node details
+→ WorkflowToolbar saves workflow definition
+→ Backend validates JSON shape and business rules
+→ ProjectWorkflow.definition is updated
+```
+
+Before Tasks exist, WorkflowCanvas can support structure and layout edits. After Tasks exist, WorkflowCanvas must switch to layout-only editing in v1. The UI should make structural controls read-only or unavailable and explain that structural workflow migration/rebuild is a future feature.
+
+### 8.3 Visual Builder Modules
 
 | UI Module | Responsibility |
 |---|---|
@@ -719,7 +769,7 @@ The visual builder should show workflow nodes on a canvas-like area. V1 keeps th
 | WorkflowStepList | Ordered list view/fallback panel for sequence review and reorder |
 | WorkflowEmptyState | First-use state prompting user to add the first stage |
 
-### 8.3 Visual Builder Interaction Scope
+### 8.4 Visual Builder Interaction Scope
 
 In scope for v1 before Tasks exist:
 
@@ -749,7 +799,7 @@ Not in scope for v1:
 - Webhooks or hooks.
 - Automation actions.
 
-### 8.4 JSONB Workflow Definition
+### 8.5 JSONB Workflow Definition
 
 The JSONB definition stores both workflow meaning and visual layout:
 
@@ -764,7 +814,7 @@ The JSONB definition stores both workflow meaning and visual layout:
 
 The same JSONB structure should be future-friendly enough for graph features later, even though v1 behaves as an ordered stage workflow.
 
-### 8.5 Mandatory and Optional Steps
+### 8.6 Mandatory and Optional Steps
 
 Mandatory steps:
 
@@ -779,7 +829,7 @@ Optional steps:
 - Do not block Task completion when marked Not_Applicable.
 - Can still be completed when relevant.
 
-### 8.6 Task Workflow Snapshot
+### 8.7 Task Workflow Snapshot
 
 When a Task is created:
 
@@ -790,14 +840,14 @@ When a Task is created:
 
 TaskWorkflowStep rows are the operational progress state used by dashboard and reporting. The JSONB definition is not mutated when Task progress changes.
 
-### 8.7 Editing Workflow After Tasks Exist
+### 8.8 Editing Workflow After Tasks Exist
 
 - Workflow definition can be edited freely before Tasks exist.
 - After Tasks exist, v1 allows layout-only changes such as node position and viewport/layout metadata.
 - After Tasks exist, v1 blocks structural workflow changes that would affect TaskWorkflowStep snapshots, including adding nodes, removing nodes, changing labels, changing mandatory flags, changing order, or changing edges.
 - A future workflow rebuild/migration feature may be designed later.
 
-### 8.8 Future Workflow Extensibility
+### 8.9 Future Workflow Extensibility
 
 V1 must not implement advanced workflow behaviour. However, the JSONB model and visual builder should leave room for future additions such as:
 
@@ -1047,7 +1097,10 @@ UI guardrails:
 - FontAwesome icons.
 - No dense enterprise-table-only interface for the main dashboard.
 - Visual Workflow Builder is a core v1 screen and should be designed early.
-- Workflow Builder must support a canvas-like experience in v1 while keeping logic limited to ordered stages.
+- WorkflowCanvas must be a real design-time workflow surface, not just a styled form.
+- WorkflowCanvas must support a canvas-like experience in v1 while keeping logic limited to ordered stages.
+- WorkflowCanvas must not be used as the Task status update screen.
+- Task status update belongs to Task screens, Task cards, or Task progress timelines.
 - When Tasks exist, the Workflow Builder should make structural fields read-only and allow layout-only edits.
 - Deliverables should be visible on Task detail and summarized on Task cards without overwhelming the workflow timeline.
 
@@ -1122,10 +1175,11 @@ Feature tests:
 - Project ownership access.
 - Visual Workflow Builder page can be opened for owned Project.
 - Visual Workflow Builder cannot be opened for another user's Project.
-- Visual Workflow Builder saves JSONB workflow definition with nodes, positions, edges, mandatory flags, and order.
-- Visual Workflow Builder reloads saved layout correctly.
-- Visual Workflow Builder allows layout-only changes after Tasks exist.
-- Visual Workflow Builder rejects structural workflow changes after Tasks exist.
+- WorkflowCanvas saves JSONB workflow definition with nodes, positions, edges, mandatory flags, and order.
+- WorkflowCanvas reloads saved layout correctly.
+- WorkflowCanvas allows layout-only changes after Tasks exist.
+- WorkflowCanvas rejects structural workflow changes after Tasks exist.
+- WorkflowCanvas does not update TaskWorkflowStep status.
 - Workflow definition validation rejects missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, and invalid order.
 - Blocking Task creation when Project has no mandatory workflow node.
 - Task creation copies workflow definition into TaskWorkflowStep rows.
@@ -1143,6 +1197,7 @@ Unit tests:
 - Workflow definition validation.
 - Workflow definition normalization.
 - Workflow structural change detection.
+- WorkflowCanvas state to JSONB definition mapping.
 - Workflow-to-task snapshot creation.
 - Progress percentage.
 - Active step selection.
@@ -1156,6 +1211,7 @@ Unit tests:
 Property-style tests:
 
 - Workflow definition validation across generated node/edge combinations.
+- WorkflowCanvas node/edge layout round-trip to JSONB.
 - Month-end target conversion.
 - Delayed calculation across date/status combinations.
 - Overdue calculation across date/status combinations.
@@ -1179,7 +1235,7 @@ Docker services:
 | Container | Purpose |
 |---|---|
 | app | Laravel application |
-| node | Frontend build tooling for Inertia React and visual workflow builder |
+| node | Frontend build tooling for Inertia React and WorkflowCanvas components |
 | db | PostgreSQL |
 
 Seeders should provide:
@@ -1203,7 +1259,7 @@ CI should run on PRs and pushes to main.
 Checks:
 
 1. Composer install.
-2. Frontend install/build as required for Inertia asset manifest and visual builder components.
+2. Frontend install/build as required for Inertia asset manifest and WorkflowCanvas components.
 3. PostgreSQL database setup.
 4. Migrations.
 5. PestPHP tests.
@@ -1222,11 +1278,11 @@ Required docs:
 |---|---|
 | `docs/architecture.md` | Laravel/Inertia/PostgreSQL/JSONB architecture with visual workflow builder as core module |
 | `docs/setup.md` | Container-first PostgreSQL setup |
-| `docs/project-structure.md` | Backend and frontend structure, including WorkflowBuilder components/actions |
+| `docs/project-structure.md` | Backend and frontend structure, including WorkflowBuilder and WorkflowCanvas components/actions |
 | `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
-| `docs/workflow-builder.md` | Visual Workflow Builder behaviour, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
+| `docs/workflow-builder.md` | Visual Workflow Builder and WorkflowCanvas behaviour, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
 | `docs/deliverables.md` | Task Deliverables, types, statuses, overdue logic, and links |
-| `docs/testing.md` | Testing approach including visual workflow builder validation |
+| `docs/testing.md` | Testing approach including visual workflow builder validation and WorkflowCanvas JSONB round-trip tests |
 | `docs/ci.md` | CI checks |
 | `docs/user-guide.md` | User guide for Projects, Visual Workflows, Tasks, Deliverables, and Dashboard |
 | `docs/troubleshooting.md` | Common development issues |
@@ -1237,17 +1293,18 @@ README.md should link to the docs and include a quick start.
 
 ## 20. Implementation Sequencing Guardrail
 
-Because the visual workflow builder is the core product experience, implementation should not postpone it until the end.
+Because the visual workflow builder and WorkflowCanvas are the core product experience, implementation should not postpone them until the end.
 
 Recommended early sequencing:
 
 1. PostgreSQL and base data model.
 2. Project ownership and ProjectWorkflow JSONB storage.
-3. Visual Workflow Builder shell and JSONB save/load.
+3. Visual Workflow Builder shell and WorkflowCanvas save/load.
 4. Workflow definition validation, normalization, and structural change detection.
-5. Task creation from workflow snapshot.
-6. Task progress/dashboard.
-7. Deliverables, follow-ups, document links, and history.
+5. WorkflowCanvas JSONB round-trip tests.
+6. Task creation from workflow snapshot.
+7. Task progress/dashboard.
+8. Deliverables, follow-ups, document links, and history.
 
 Do not build a full automation engine while implementing the visual builder. V1 visual builder means visual ordered-stage workflow creation only.
 
