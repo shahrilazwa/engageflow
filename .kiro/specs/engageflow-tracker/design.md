@@ -83,15 +83,16 @@ These may be reconsidered later only when the product need is real.
 - User can edit workflow stage labels.
 - User can mark workflow stage nodes as Mandatory or Optional.
 - User can drag/reposition workflow nodes visually.
-- User can reorder the workflow stage sequence.
+- User can reorder the workflow stage sequence before Tasks exist.
 - Visual Workflow Builder shows simple edges/connectors between ordered workflow stage nodes.
 - Visual Workflow Builder stores node position and viewport data in JSONB so the visual layout can be restored later.
+- After Tasks exist, Visual Workflow Builder allows layout-only changes and blocks structural workflow changes in v1.
 - User can create Tasks only after the Project workflow has at least one mandatory workflow node.
 - Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
 - User can update Task Workflow Step status.
 - User can set a target completion date for a Task.
 - User can record Task Deliverables such as documents, slide decks, spreadsheets, Figma/design files, repository links, URLs, or other outputs.
-- Dashboard shows Project-scoped progress, delayed Tasks, overdue Follow-Up Actions, and Deliverable status indicators.
+- Dashboard shows Project-scoped progress, delayed Tasks, overdue Follow-Up Actions, pending Deliverables, and overdue Deliverables.
 - User can add Follow-Up Actions to Tasks.
 - User can add external Document Links to Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
 - Status changes are recorded in Audit Entries.
@@ -102,6 +103,7 @@ These may be reconsidered later only when the product need is real.
 - Project members and collaboration.
 - Cross-project dashboard.
 - Starter workflow library.
+- Workflow migration/rebuild for existing Tasks after structural workflow changes.
 - Branching workflow paths.
 - Condition rules.
 - Runtime actions.
@@ -166,6 +168,8 @@ User edits workflow on React canvas
 → Action validates business rules and saves ProjectWorkflow.definition JSONB
 → Controller redirects or returns updated Inertia props
 ```
+
+When Tasks do not exist, the save action may persist structural workflow changes such as nodes, labels, mandatory flags, order, and edges. When Tasks already exist, the save action must reject structural workflow changes and only persist layout-only changes such as node positions and viewport/layout metadata.
 
 Loading a visual workflow definition follows this flow:
 
@@ -276,6 +280,7 @@ app/
       SaveVisualWorkflowDefinition.php
       ValidateWorkflowDefinition.php
       CreateTaskWorkflowSnapshot.php
+      DetectWorkflowStructuralChange.php
     WorkflowBuilder/
       NormalizeWorkflowDefinition.php
       ReorderWorkflowNodes.php
@@ -293,6 +298,7 @@ Backend guardrails:
 
 - Workflow JSON validation must be server-side, not only in React.
 - The save workflow action must validate node IDs, labels, mandatory flags, order, positions, and edges.
+- The save workflow action must block structural workflow changes after Tasks exist and allow layout-only changes.
 - Task creation must use an action to copy workflow nodes into `TaskWorkflowStep` rows.
 - Do not scatter workflow JSON parsing across controllers, models, and dashboard queries.
 
@@ -337,6 +343,7 @@ Frontend guardrails:
 - Avoid one giant workflow builder component.
 - Avoid one giant dashboard component.
 - UI may hide unavailable actions, but backend policies must enforce access.
+- When Tasks exist, the builder UI should clearly indicate that only layout changes are editable in v1.
 
 ---
 
@@ -346,14 +353,14 @@ Frontend guardrails:
 |---|---|
 | Project Management | Create, update, list, and select Projects owned by the user |
 | Visual Workflow Builder | Canvas-like creation and editing of Project workflow nodes, edges, positions, order, and mandatory/optional settings |
-| Workflow Definition Management | Validate, normalize, save, and load `ProjectWorkflow.definition` JSONB |
+| Workflow Definition Management | Validate, normalize, save, load, and detect structural changes in `ProjectWorkflow.definition` JSONB |
 | Task Tracking | Create, update, list, search, and filter Tasks inside a Project |
 | Task Workflow Snapshot | Convert Project workflow JSONB nodes into relational TaskWorkflowStep rows |
 | Stage / Step Tracking | Update copied Task Workflow Step status and completion date |
-| Deliverable Tracking | Create, update, list, and track expected Task outputs |
+| Deliverable Tracking | Create, update, list, and track expected Task outputs, including overdue deliverables |
 | Follow-Up Tracking | Create, update, list, and flag overdue Follow-Up Actions |
 | Document Links | Store and display external links attached to allowed parent records |
-| Dashboard | Show Project-scoped summary, progress, delayed tasks, pending deliverables, and overdue follow-ups |
+| Dashboard | Show Project-scoped summary, progress, delayed tasks, pending/overdue deliverables, and overdue follow-ups |
 | History | Record and display status change history |
 | Access Control | Enforce owner-only access in v1, prepare for Project members later |
 
@@ -608,6 +615,7 @@ Rules:
 - A Task can have multiple Deliverables.
 - A Deliverable can have one or more Document Links attached to it.
 - Deliverables are relational because they are useful for dashboard indicators, filtering, follow-up, and status tracking.
+- A Deliverable is overdue when its due date is before today and its status is Pending or In_Progress.
 - Do not upload files in v1; store external links through DocumentLink.
 
 ### 7.10 FollowUpAction
@@ -691,7 +699,7 @@ Open Project Workflow
 → Name stage
 → Mark Mandatory/Optional
 → Drag/reposition stage visually
-→ Reorder stage sequence
+→ Reorder stage sequence before Tasks exist
 → Save workflow definition
 → Reload workflow definition later with layout preserved
 ```
@@ -713,7 +721,7 @@ The visual builder should show workflow nodes on a canvas-like area. V1 keeps th
 
 ### 8.3 Visual Builder Interaction Scope
 
-In scope for v1:
+In scope for v1 before Tasks exist:
 
 - Add a stage node.
 - Edit stage label.
@@ -725,8 +733,15 @@ In scope for v1:
 - Show empty state before the first node is added.
 - Prevent saving a workflow with zero mandatory nodes.
 
+In scope for v1 after Tasks exist:
+
+- Move/reposition stage nodes visually.
+- Save and reload viewport/layout metadata.
+- Preserve existing TaskWorkflowStep snapshots.
+
 Not in scope for v1:
 
+- Structural workflow changes after Tasks exist.
 - Branching paths.
 - Conditional transitions.
 - Runtime execution.
@@ -778,7 +793,8 @@ TaskWorkflowStep rows are the operational progress state used by dashboard and r
 ### 8.7 Editing Workflow After Tasks Exist
 
 - Workflow definition can be edited freely before Tasks exist.
-- After Tasks exist, existing TaskWorkflowStep rows must not be silently overwritten.
+- After Tasks exist, v1 allows layout-only changes such as node position and viewport/layout metadata.
+- After Tasks exist, v1 blocks structural workflow changes that would affect TaskWorkflowStep snapshots, including adding nodes, removing nodes, changing labels, changing mandatory flags, changing order, or changing edges.
 - A future workflow rebuild/migration feature may be designed later.
 
 ### 8.8 Future Workflow Extensibility
@@ -839,7 +855,8 @@ Future access must remain application-level authorization. External identity pro
 | View Project | Yes | Future | No |
 | Update Project | Yes | No | No |
 | Open Workflow Builder | Yes | Future | No |
-| Save Workflow Definition before Tasks exist | Yes | No | No |
+| Save workflow structural changes before Tasks exist | Yes | No | No |
+| Save workflow layout-only changes after Tasks exist | Yes | No | No |
 | View Tasks | Yes | Future | No |
 | Create/update Tasks | Yes | Future | No |
 | Update Task workflow steps | Yes | Future | No |
@@ -945,6 +962,16 @@ deliverable_is_complete = status is Completed OR status is Not_Required
 
 Deliverables do not replace workflow progress. They provide output tracking for the Task. A Task can be workflow-complete while still having incomplete Deliverables, so the UI should show both workflow progress and Deliverable status separately.
 
+### 11.7 Overdue Deliverable
+
+```text
+is_overdue = due_date exists
+           AND due_date < today
+           AND status is Pending or In_Progress
+```
+
+Overdue deliverable status is computed on read in v1.
+
 ---
 
 ## 12. Dashboard Design
@@ -961,6 +988,7 @@ Metrics:
 | Delayed Tasks | Count Tasks where delayed rule is true |
 | Overdue Follow-Ups | Count FollowUpActions where overdue rule is true |
 | Pending Deliverables | Count TaskDeliverables where status is Pending or In_Progress |
+| Overdue Deliverables | Count TaskDeliverables where due date has passed and status is Pending or In_Progress |
 
 Dashboard must not mix data across Projects.
 
@@ -976,6 +1004,7 @@ Dashboard UI should include:
 - Optional-step indicators.
 - Delayed badge.
 - Overdue follow-up section.
+- Overdue deliverable section or indicator.
 - Search and filters.
 
 Dashboard should not parse complex workflow JSON for routine counts. It should rely on relational TaskWorkflowStep rows for task progress.
@@ -1019,6 +1048,7 @@ UI guardrails:
 - No dense enterprise-table-only interface for the main dashboard.
 - Visual Workflow Builder is a core v1 screen and should be designed early.
 - Workflow Builder must support a canvas-like experience in v1 while keeping logic limited to ordered stages.
+- When Tasks exist, the Workflow Builder should make structural fields read-only and allow layout-only edits.
 - Deliverables should be visible on Task detail and summarized on Task cards without overwhelming the workflow timeline.
 
 ---
@@ -1036,6 +1066,7 @@ Validation errors:
 - Missing workflow node position when saving from the visual builder.
 - Invalid workflow edge referencing missing node ID.
 - Invalid or duplicate workflow node order.
+- Structural workflow change attempted after Tasks exist.
 - Task creation before Project has valid mandatory workflow stage.
 - Missing Task Deliverable title.
 - Invalid Task Deliverable type.
@@ -1093,11 +1124,14 @@ Feature tests:
 - Visual Workflow Builder cannot be opened for another user's Project.
 - Visual Workflow Builder saves JSONB workflow definition with nodes, positions, edges, mandatory flags, and order.
 - Visual Workflow Builder reloads saved layout correctly.
+- Visual Workflow Builder allows layout-only changes after Tasks exist.
+- Visual Workflow Builder rejects structural workflow changes after Tasks exist.
 - Workflow definition validation rejects missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, and invalid order.
 - Blocking Task creation when Project has no mandatory workflow node.
 - Task creation copies workflow definition into TaskWorkflowStep rows.
 - Task workflow step status update.
 - Task Deliverable create/update/status change.
+- Overdue Task Deliverable calculation.
 - Follow-Up Action create/update.
 - Document Link create/view/remove for Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
 - Dashboard summary counts.
@@ -1108,12 +1142,14 @@ Unit tests:
 
 - Workflow definition validation.
 - Workflow definition normalization.
+- Workflow structural change detection.
 - Workflow-to-task snapshot creation.
 - Progress percentage.
 - Active step selection.
 - Delayed calculation.
 - Overdue calculation.
 - Deliverable completion calculation.
+- Overdue deliverable calculation.
 - Month-end target date conversion.
 - Audit entry creation.
 
@@ -1123,6 +1159,7 @@ Property-style tests:
 - Month-end target conversion.
 - Delayed calculation across date/status combinations.
 - Overdue calculation across date/status combinations.
+- Overdue deliverable calculation across date/status combinations.
 - Dashboard count consistency.
 
 ---
@@ -1151,7 +1188,7 @@ Seeders should provide:
 - Sample Projects.
 - Sample Project Workflow definitions in JSONB with visual node positions, edges, and viewport metadata.
 - Sample Tasks with copied workflow steps and varied statuses.
-- Sample Task Deliverables with different types and statuses.
+- Sample Task Deliverables with different types and statuses, including overdue examples.
 - Sample Follow-Up Actions.
 - Sample Document Links.
 
@@ -1187,8 +1224,8 @@ Required docs:
 | `docs/setup.md` | Container-first PostgreSQL setup |
 | `docs/project-structure.md` | Backend and frontend structure, including WorkflowBuilder components/actions |
 | `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
-| `docs/workflow-builder.md` | Visual Workflow Builder behaviour, JSONB layout, node/edge rules, validation, and v1 limitations |
-| `docs/deliverables.md` | Task Deliverables, types, statuses, and links |
+| `docs/workflow-builder.md` | Visual Workflow Builder behaviour, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
+| `docs/deliverables.md` | Task Deliverables, types, statuses, overdue logic, and links |
 | `docs/testing.md` | Testing approach including visual workflow builder validation |
 | `docs/ci.md` | CI checks |
 | `docs/user-guide.md` | User guide for Projects, Visual Workflows, Tasks, Deliverables, and Dashboard |
@@ -1207,7 +1244,7 @@ Recommended early sequencing:
 1. PostgreSQL and base data model.
 2. Project ownership and ProjectWorkflow JSONB storage.
 3. Visual Workflow Builder shell and JSONB save/load.
-4. Workflow definition validation and normalization.
+4. Workflow definition validation, normalization, and structural change detection.
 5. Task creation from workflow snapshot.
 6. Task progress/dashboard.
 7. Deliverables, follow-ups, document links, and history.
