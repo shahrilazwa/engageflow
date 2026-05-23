@@ -4,7 +4,9 @@
 
 EngageFlow is a Laravel + Inertia React application for tracking projects, custom workflows, tasks, deliverables, follow-up actions, document links, dashboards, and status history.
 
-The v1 product is **project-first** and **single-user-first**. A user can create multiple Projects, define the workflow for each Project, create Tasks inside the Project, record expected Deliverables for each Task, and track progress visually. Collaboration is a future extension and must not block the first MVP.
+The v1 product is **project-first**, **workflow-first**, and **single-user-first**. A user can create multiple Projects, visually define the workflow for each Project, create Tasks inside the Project, record expected Deliverables for each Task, and track progress visually. Collaboration is a future extension and must not block the first MVP.
+
+The visual Workflow Builder is a core v1 feature, not a future enhancement. The first MVP should support visual creation of an ordered stage workflow. It does not need to support automation, branching rules, hooks, or integrations yet.
 
 Core v1 model:
 
@@ -39,6 +41,7 @@ If a user needs to track a different stream of work, they create another Project
 | Authentication | Laravel session auth | Do not introduce Keycloak in v1 |
 | Authorization | Laravel Policies | Do not introduce Spatie Permission in v1 |
 | Styling | Tailwind CSS + MYDS-inspired components | White-based, clean, componentised UI |
+| Visual workflow UI | React-based visual builder | Core v1 UI for creating ordered stage workflows |
 | Tests | PestPHP | Feature, unit, and selected property-style tests |
 | Local dev | Docker Compose | Container-first development |
 
@@ -54,6 +57,8 @@ Do not introduce these in the first MVP:
 - Separate public API.
 - Microservices.
 - Workflow automation engine.
+- Branching workflow execution.
+- Runtime actions, connectors, webhooks, or hooks.
 - File upload or document repository integration.
 
 These may be reconsidered later only when the product need is real.
@@ -67,8 +72,10 @@ These may be reconsidered later only when the product need is real.
 - User can log in using Laravel session authentication.
 - User can create and manage multiple Projects.
 - Each Project has one Workflow Definition stored as JSONB.
+- User can visually create and edit a Project Workflow using a visual Workflow Builder.
 - Workflow Definition supports ordered stage-style workflows for v1.
-- Workflow steps can be named, ordered, and marked mandatory or optional.
+- Workflow steps can be added, named, ordered, repositioned visually, and marked mandatory or optional.
+- Visual Workflow Builder stores node position data in the JSONB definition so the visual layout can be restored later.
 - User can create Tasks only after the Project workflow has at least one mandatory step.
 - Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
 - User can update Task Workflow Step status.
@@ -167,7 +174,7 @@ React page requests route
 
 | Layer | Responsibility | Guardrail |
 |---|---|---|
-| React/Inertia UI | Pages, forms, layouts, reusable components | No business rules beyond local UI behaviour |
+| React/Inertia UI | Pages, forms, layouts, reusable components, visual workflow builder | No business rules beyond local UI behaviour |
 | Routes | Map URLs to controllers | Keep grouped by feature |
 | Controllers | Authorize, call actions, return Inertia responses | Keep thin |
 | Form Requests | Validate HTTP input | Keep validation at boundary |
@@ -247,6 +254,12 @@ resources/js/
   Components/
     Projects/
     Workflows/
+      WorkflowBuilder.tsx
+      WorkflowCanvas.tsx
+      WorkflowNode.tsx
+      WorkflowEdge.tsx
+      WorkflowStepInspector.tsx
+      WorkflowToolbar.tsx
     Tasks/
     Deliverables/
     FollowUps/
@@ -260,6 +273,7 @@ Guardrails:
 - Blade is only for the root Inertia view.
 - Keep components lego-style and reusable.
 - Avoid one giant dashboard component.
+- Visual Workflow Builder should be componentised early because it is a core product feature.
 - UI may hide unavailable actions, but backend policies must enforce access.
 
 ---
@@ -344,7 +358,7 @@ Fields:
 Rules:
 
 - One Project has one ProjectWorkflow.
-- `definition` is the source of truth for the Project workflow design.
+- `definition` is the source of truth for the Project workflow design and visual layout.
 - Keep this entity isolated as the extension point for future workflow capability.
 - Do not create a relational table for each workflow design concern unless there is a clear reporting/query need.
 
@@ -378,7 +392,12 @@ Example v1 definition:
       "from": "planning",
       "to": "review"
     }
-  ]
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
 }
 ```
 
@@ -537,19 +556,63 @@ Tracked changes:
 
 ---
 
-## 7. Workflow Design
+## 7. Visual Workflow Builder Design
 
-### 7.1 v1 Workflow Builder
+### 7.1 v1 Visual Workflow Builder
 
-The first MVP Workflow Builder is an ordered stage builder backed by JSONB:
+The visual Workflow Builder is in scope for v1 because it is the core differentiator of the app.
+
+V1 builder behaviour:
 
 ```text
-Add stage → name stage → mark Mandatory/Optional → reorder stage → save workflow definition
+Open Project Workflow
+→ Add stage node
+→ Name stage
+→ Mark Mandatory/Optional
+→ Drag/reposition stage visually
+→ Reorder stage sequence
+→ Save workflow definition
 ```
 
-The JSONB definition may include node IDs, labels, mandatory flags, ordering, visual positions, and simple edges. For v1, the workflow behaves as an ordered stage list.
+The visual builder should show workflow nodes on a canvas-like area. V1 may keep the actual logic as an ordered stage sequence, but the user experience should already feel visual rather than only a plain form/table.
 
-### 7.2 Mandatory and Optional Steps
+### 7.2 Visual Builder Interaction Scope
+
+In scope for v1:
+
+- Add a stage node.
+- Edit stage label.
+- Mark stage Mandatory or Optional.
+- Move/reposition stage node visually.
+- Reorder the stage sequence.
+- Show simple connecting edges between ordered stages.
+- Save and reload the visual layout from JSONB.
+
+Not in scope for v1:
+
+- Branching paths.
+- Conditional transitions.
+- Runtime execution.
+- External connectors.
+- Webhooks or hooks.
+- Automation actions.
+
+### 7.3 JSONB Workflow Definition
+
+The JSONB definition stores both workflow meaning and visual layout:
+
+- node ID;
+- node type;
+- label;
+- mandatory flag;
+- order;
+- position;
+- simple ordered edges;
+- viewport state if useful.
+
+The same JSONB structure should be future-friendly enough for graph features later, even though v1 behaves as an ordered stage workflow.
+
+### 7.4 Mandatory and Optional Steps
 
 Mandatory steps:
 
@@ -564,7 +627,7 @@ Optional steps:
 - Do not block Task completion when marked Not_Applicable.
 - Can still be completed when relevant.
 
-### 7.3 Task Workflow Snapshot
+### 7.5 Task Workflow Snapshot
 
 When a Task is created:
 
@@ -575,15 +638,15 @@ When a Task is created:
 
 TaskWorkflowStep rows are the operational progress state used by dashboard and reporting. The JSONB definition is not mutated when Task progress changes.
 
-### 7.4 Editing Workflow After Tasks Exist
+### 7.6 Editing Workflow After Tasks Exist
 
 - Workflow definition can be edited freely before Tasks exist.
 - After Tasks exist, existing TaskWorkflowStep rows must not be silently overwritten.
 - A future workflow rebuild/migration feature may be designed later.
 
-### 7.5 Future Workflow Extensibility
+### 7.7 Future Workflow Extensibility
 
-v1 must not implement advanced workflow behaviour. However, the JSONB model should leave room for future additions such as:
+v1 must not implement advanced workflow behaviour. However, the JSONB model and visual builder should leave room for future additions such as:
 
 - branching;
 - condition rules;
@@ -593,7 +656,7 @@ v1 must not implement advanced workflow behaviour. However, the JSONB model shou
 
 Guardrails:
 
-- Keep future workflow concerns isolated around ProjectWorkflow.definition.
+- Keep future workflow concerns isolated around ProjectWorkflow.definition and visual Workflow Builder components.
 - Do not spread assumptions about flat workflows across unrelated code.
 - Keep Task creation as the boundary where Workflow Definition becomes TaskWorkflowStep rows.
 - Do not build future workflow behaviour now.
@@ -788,8 +851,12 @@ Recommended components:
 | `ProjectSwitcher` | Select active Project |
 | `ProjectCard` | Project summary |
 | `WorkflowBuilder` | Build Project workflow definition |
-| `WorkflowCanvas` | Future-friendly visual area for workflow nodes; v1 may be simple list UI |
-| `WorkflowStepList` | Ordered step list |
+| `WorkflowCanvas` | Visual area for workflow nodes; in scope for v1 |
+| `WorkflowNode` | Individual workflow stage node |
+| `WorkflowEdge` | Simple visual connector between ordered stages |
+| `WorkflowStepInspector` | Edit selected stage label and Mandatory/Optional setting |
+| `WorkflowToolbar` | Add stage, save workflow, fit view, and related builder actions |
+| `WorkflowStepList` | Ordered step list / fallback editing panel |
 | `StepRequirementBadge` | Mandatory/Optional label |
 | `TaskCard` | Task summary |
 | `TaskProgressTimeline` | Task step timeline |
@@ -808,7 +875,8 @@ UI guardrails:
 - MYDS-inspired typography and component discipline.
 - FontAwesome icons.
 - No dense enterprise-table-only interface for the main dashboard.
-- Workflow Builder must stay simple in v1 but not be visually designed in a way that blocks a future canvas/graph builder.
+- Visual Workflow Builder is a core v1 screen and should be designed early.
+- Workflow Builder must support a visual canvas-like experience in v1 while keeping logic limited to ordered stages.
 - Deliverables should be visible on Task detail and summarized on Task cards without overwhelming the workflow timeline.
 
 ---
@@ -821,6 +889,7 @@ Validation errors:
 - Invalid Workflow Definition JSON shape.
 - Workflow Definition with no mandatory stage node.
 - Missing workflow stage label.
+- Missing workflow node position when saving from the visual builder.
 - Task creation before Project has valid mandatory workflow stage.
 - Missing Task Deliverable title.
 - Invalid Task Deliverable type.
@@ -871,7 +940,8 @@ Feature tests:
 - Login and authenticated access.
 - Project creation.
 - Project ownership access.
-- Workflow definition creation using JSONB.
+- Visual Workflow Builder saves JSONB workflow definition with nodes, positions, edges, mandatory flags, and order.
+- Visual Workflow Builder reloads saved layout correctly.
 - Workflow definition validation, including mandatory/optional nodes.
 - Blocking Task creation when Project has no mandatory workflow node.
 - Task creation copies workflow definition into TaskWorkflowStep rows.
@@ -926,7 +996,7 @@ Seeders should provide:
 
 - Default local user.
 - Sample Projects.
-- Sample Project Workflow definitions in JSONB.
+- Sample Project Workflow definitions in JSONB with visual node positions.
 - Sample Tasks with copied workflow steps and varied statuses.
 - Sample Task Deliverables with different types and statuses.
 - Sample Follow-Up Actions.
@@ -964,6 +1034,7 @@ Required docs:
 | `docs/setup.md` | Container-first PostgreSQL setup |
 | `docs/project-structure.md` | Backend and frontend structure |
 | `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
+| `docs/workflow-builder.md` | Visual Workflow Builder behaviour, JSONB layout, node/edge rules, and v1 limitations |
 | `docs/deliverables.md` | Task Deliverables, types, statuses, and links |
 | `docs/testing.md` | Testing approach |
 | `docs/ci.md` | CI checks |
