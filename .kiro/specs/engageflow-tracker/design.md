@@ -2,9 +2,9 @@
 
 ## 1. Purpose
 
-EngageFlow is a Laravel + Inertia React application for tracking projects, custom workflows, tasks, follow-up actions, document links, dashboards, and status history.
+EngageFlow is a Laravel + Inertia React application for tracking projects, custom workflows, tasks, deliverables, follow-up actions, document links, dashboards, and status history.
 
-The v1 product is **project-first** and **single-user-first**. A user can create multiple Projects, define the workflow for each Project, create Tasks inside the Project, and track progress visually. Collaboration is a future extension and must not block the first MVP.
+The v1 product is **project-first** and **single-user-first**. A user can create multiple Projects, define the workflow for each Project, create Tasks inside the Project, record expected Deliverables for each Task, and track progress visually. Collaboration is a future extension and must not block the first MVP.
 
 Core v1 model:
 
@@ -14,6 +14,7 @@ User
     ├── Workflow Definition (JSONB)
     └── Tasks
         ├── Task Workflow Steps (relational progress snapshot)
+        ├── Task Deliverables
         ├── Follow-Up Actions
         ├── Document Links
         └── Status History
@@ -33,7 +34,7 @@ If a user needs to track a different stream of work, they create another Project
 | Frontend | Inertia.js + React | Keep modern React UI without needing a separate API-first frontend/backend split |
 | Database | PostgreSQL | Replaces MySQL because workflow definitions benefit from JSONB |
 | Workflow definition storage | PostgreSQL JSONB | Source of truth for Project workflow design/configuration |
-| Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, and audit data stay relational |
+| Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, deliverables, and audit data stay relational |
 | ORM / data access | Eloquent ORM + Query Builder | Laravel-native; do not introduce Prisma in v1 |
 | Authentication | Laravel session auth | Do not introduce Keycloak in v1 |
 | Authorization | Laravel Policies | Do not introduce Spatie Permission in v1 |
@@ -72,9 +73,10 @@ These may be reconsidered later only when the product need is real.
 - Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
 - User can update Task Workflow Step status.
 - User can set a target completion date for a Task.
-- Dashboard shows Project-scoped progress, delayed Tasks, and overdue Follow-Up Actions.
+- User can record Task Deliverables such as documents, slide decks, spreadsheets, Figma/design files, repository links, URLs, or other outputs.
+- Dashboard shows Project-scoped progress, delayed Tasks, overdue Follow-Up Actions, and Deliverable status indicators.
 - User can add Follow-Up Actions to Tasks.
-- User can add external Document Links to Tasks, Task Workflow Steps, and Follow-Up Actions.
+- User can add external Document Links to Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
 - Status changes are recorded in Audit Entries.
 - Project access is owner-only in the first MVP.
 
@@ -135,7 +137,7 @@ PostgreSQL relational tables = structured operational data
 PostgreSQL JSONB = flexible workflow definition data
 ```
 
-Use relational tables for records that need filtering, dashboard counts, audit history, joins, and access control. Use JSONB for the Project Workflow Definition because its shape may evolve from ordered stages to richer workflow graphs later.
+Use relational tables for records that need filtering, dashboard counts, audit history, joins, and access control. This includes Tasks, Task Workflow Steps, Task Deliverables, Follow-Up Actions, Document Links, and Audit Entries. Use JSONB for the Project Workflow Definition because its shape may evolve from ordered stages to richer workflow graphs later.
 
 ### 4.3 Request Flow
 
@@ -170,7 +172,7 @@ React page requests route
 | Controllers | Authorize, call actions, return Inertia responses | Keep thin |
 | Form Requests | Validate HTTP input | Keep validation at boundary |
 | Policies | Enforce Project ownership now and membership later | Never rely only on hidden UI |
-| Actions | Business operations and transactions | Main home for workflow/task rules |
+| Actions | Business operations and transactions | Main home for workflow/task/deliverable rules |
 | Models | Relationships, casts, simple helpers | Avoid complex workflows in models |
 | Events/Listeners | Audit/history and future side effects | Keep side effects separate |
 | PostgreSQL | Relational persistence and JSONB workflow definitions | Migrations are append-only after merge |
@@ -190,6 +192,7 @@ app/
       Projects/
       Workflows/
       Tasks/
+      Deliverables/
       FollowUps/
       Documents/
       Dashboard/
@@ -197,6 +200,7 @@ app/
       Projects/
       Workflows/
       Tasks/
+      Deliverables/
       FollowUps/
       Documents/
   Models/
@@ -205,6 +209,7 @@ app/
     ProjectWorkflow.php
     Task.php
     TaskWorkflowStep.php
+    TaskDeliverable.php
     FollowUpAction.php
     DocumentLink.php
     AuditEntry.php
@@ -212,12 +217,14 @@ app/
     ProjectPolicy.php
     TaskPolicy.php
     TaskWorkflowStepPolicy.php
+    TaskDeliverablePolicy.php
     FollowUpActionPolicy.php
     DocumentLinkPolicy.php
   Actions/
     Projects/
     Workflows/
     Tasks/
+    Deliverables/
     FollowUps/
     Documents/
     Dashboard/
@@ -241,6 +248,7 @@ resources/js/
     Projects/
     Workflows/
     Tasks/
+    Deliverables/
     FollowUps/
     Documents/
     Shared/
@@ -266,16 +274,20 @@ User
         ├── ProjectWorkflow (JSONB definition)
         └── Task
               ├── TaskWorkflowStep
+              ├── TaskDeliverable
               ├── FollowUpAction
               └── DocumentLink
 
 TaskWorkflowStep
   └── DocumentLink
 
+TaskDeliverable
+  └── DocumentLink
+
 FollowUpAction
   └── DocumentLink
 
-TaskWorkflowStep / FollowUpAction
+TaskWorkflowStep / TaskDeliverable / FollowUpAction
   └── AuditEntry
 ```
 
@@ -385,6 +397,7 @@ Rules:
 
 - A Task belongs to one Project.
 - A Task receives relational workflow progress rows copied from the ProjectWorkflow definition at creation time.
+- A Task can have zero or more Task Deliverables.
 - Delayed status is computed on read.
 
 ### 6.6 TaskWorkflowStep
@@ -408,7 +421,56 @@ Rules:
 - Valid statuses: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
 - `completed_at` is set when status becomes Completed.
 
-### 6.7 FollowUpAction
+### 6.7 TaskDeliverable
+
+A Task Deliverable represents an expected output from a Task. It is different from a generic Document Link. A Deliverable answers: "What output must this Task produce?" A Document Link answers: "Where is the related file/reference?"
+
+Fields:
+
+- `id`
+- `task_id`
+- `title`
+- `description` nullable
+- `deliverable_type`
+- `status`
+- `due_date` nullable
+- `remarks` nullable
+- timestamps
+
+Deliverable types for v1:
+
+- Document
+- Slide
+- Spreadsheet
+- Design
+- Repository
+- Link
+- Other
+
+Examples:
+
+- Kertas cadangan document.
+- Presentation slide deck.
+- Costing spreadsheet.
+- Figma design file.
+- GitHub repository link.
+- External reference URL.
+
+Valid statuses for v1:
+
+- Pending
+- In_Progress
+- Completed
+- Not_Required
+
+Rules:
+
+- A Task can have multiple Deliverables.
+- A Deliverable can have one or more Document Links attached to it.
+- Deliverables are relational because they are useful for dashboard indicators, filtering, follow-up, and status tracking.
+- Do not upload files in v1; store external links through DocumentLink.
+
+### 6.8 FollowUpAction
 
 Fields:
 
@@ -427,7 +489,7 @@ Valid statuses:
 - Done
 - Cancelled
 
-### 6.8 DocumentLink
+### 6.9 DocumentLink
 
 Fields:
 
@@ -442,6 +504,7 @@ Allowed parents:
 
 - Task
 - TaskWorkflowStep
+- TaskDeliverable
 - FollowUpAction
 
 Rules:
@@ -451,7 +514,7 @@ Rules:
 - Do not integrate with external document storage in v1.
 - Access must be checked through the parent Project.
 
-### 6.9 AuditEntry
+### 6.10 AuditEntry
 
 Fields:
 
@@ -469,6 +532,7 @@ Fields:
 Tracked changes:
 
 - TaskWorkflowStep status changes.
+- TaskDeliverable status changes.
 - FollowUpAction status changes.
 
 ---
@@ -578,6 +642,7 @@ Future access must remain application-level authorization. External identity pro
 | View Tasks | Yes | Future | No |
 | Create/update Tasks | Yes | Future | No |
 | Update Task workflow steps | Yes | Future | No |
+| Manage Task Deliverables | Yes | Future | No |
 | Manage Follow-Up Actions | Yes | Future | No |
 | Manage Document Links | Yes | Future | No |
 | View History | Yes | Future | No |
@@ -671,6 +736,14 @@ is_overdue = due_date < today
 
 Overdue status is computed on read in v1.
 
+### 10.6 Deliverable Completion
+
+```text
+deliverable_is_complete = status is Completed OR status is Not_Required
+```
+
+Deliverables do not replace workflow progress. They provide output tracking for the Task. A Task can be workflow-complete while still having incomplete Deliverables, so the UI should show both workflow progress and Deliverable status separately.
+
 ---
 
 ## 11. Dashboard Design
@@ -686,6 +759,7 @@ Metrics:
 | In Progress Tasks | Count Tasks where final mandatory step is not Completed |
 | Delayed Tasks | Count Tasks where delayed rule is true |
 | Overdue Follow-Ups | Count FollowUpActions where overdue rule is true |
+| Pending Deliverables | Count TaskDeliverables where status is Pending or In_Progress |
 
 Dashboard must not mix data across Projects.
 
@@ -696,6 +770,7 @@ Dashboard UI should include:
 - Task list/table/cards.
 - Active step indicator.
 - Mandatory-step progress percentage.
+- Deliverable status indicator.
 - Optional-step indicators.
 - Delayed badge.
 - Overdue follow-up section.
@@ -718,6 +793,8 @@ Recommended components:
 | `StepRequirementBadge` | Mandatory/Optional label |
 | `TaskCard` | Task summary |
 | `TaskProgressTimeline` | Task step timeline |
+| `DeliverableList` | List Task Deliverables and their statuses |
+| `DeliverableTypeBadge` | Show Document, Slide, Spreadsheet, Design, Repository, Link, or Other |
 | `StatusBadge` | Status display |
 | `DashboardSummaryCards` | Project metrics |
 | `FollowUpActionPanel` | Follow-up action list/manage UI |
@@ -732,6 +809,7 @@ UI guardrails:
 - FontAwesome icons.
 - No dense enterprise-table-only interface for the main dashboard.
 - Workflow Builder must stay simple in v1 but not be visually designed in a way that blocks a future canvas/graph builder.
+- Deliverables should be visible on Task detail and summarized on Task cards without overwhelming the workflow timeline.
 
 ---
 
@@ -744,6 +822,9 @@ Validation errors:
 - Workflow Definition with no mandatory stage node.
 - Missing workflow stage label.
 - Task creation before Project has valid mandatory workflow stage.
+- Missing Task Deliverable title.
+- Invalid Task Deliverable type.
+- Invalid Task Deliverable status.
 - Invalid Task workflow step status.
 - Invalid Follow-Up Action status.
 - Invalid document URL.
@@ -768,6 +849,7 @@ Events:
 | Event | Trigger | Listener |
 |---|---|---|
 | `TaskWorkflowStepStatusChanged` | TaskWorkflowStep status changes | Writes AuditEntry |
+| `TaskDeliverableStatusChanged` | TaskDeliverable status changes | Writes AuditEntry |
 | `FollowUpActionStatusChanged` | FollowUpAction status changes | Writes AuditEntry |
 
 AuditEntry must include:
@@ -794,8 +876,9 @@ Feature tests:
 - Blocking Task creation when Project has no mandatory workflow node.
 - Task creation copies workflow definition into TaskWorkflowStep rows.
 - Task workflow step status update.
+- Task Deliverable create/update/status change.
 - Follow-Up Action create/update.
-- Document Link create/view/remove.
+- Document Link create/view/remove for Tasks, Task Workflow Steps, Task Deliverables, and Follow-Up Actions.
 - Dashboard summary counts.
 - Search/filter within selected Project.
 - Cross-project access denial.
@@ -808,6 +891,7 @@ Unit tests:
 - Active step selection.
 - Delayed calculation.
 - Overdue calculation.
+- Deliverable completion calculation.
 - Month-end target date conversion.
 - Audit entry creation.
 
@@ -844,6 +928,7 @@ Seeders should provide:
 - Sample Projects.
 - Sample Project Workflow definitions in JSONB.
 - Sample Tasks with copied workflow steps and varied statuses.
+- Sample Task Deliverables with different types and statuses.
 - Sample Follow-Up Actions.
 - Sample Document Links.
 
@@ -879,9 +964,10 @@ Required docs:
 | `docs/setup.md` | Container-first PostgreSQL setup |
 | `docs/project-structure.md` | Backend and frontend structure |
 | `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
+| `docs/deliverables.md` | Task Deliverables, types, statuses, and links |
 | `docs/testing.md` | Testing approach |
 | `docs/ci.md` | CI checks |
-| `docs/user-guide.md` | User guide for Projects, Workflows, Tasks, and Dashboard |
+| `docs/user-guide.md` | User guide for Projects, Workflows, Tasks, Deliverables, and Dashboard |
 | `docs/troubleshooting.md` | Common development issues |
 
 README.md should link to the docs and include a quick start.
