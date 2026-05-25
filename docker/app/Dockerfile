@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libpng-dev \
     libonig-dev \
+    libpq-dev \
     libxml2-dev \
     libzip-dev \
     zip \
@@ -16,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install PHP extensions required by Laravel
 RUN docker-php-ext-install \
-    pdo_mysql \
+    pdo_pgsql \
     mbstring \
     exif \
     pcntl \

@@ -1,16 +1,14 @@
 # Architecture
 
-> **Status:** Skeleton — detailed content will be expanded as implementation progresses.
-
-This document describes the overall architecture of EngageFlow.
+This document describes the current target architecture for EngageFlow.
 
 ---
 
 ## Overview
 
-EngageFlow is built as a **modular monolith** using Laravel. All modules are deployed as a single unit, but each module has clear boundaries so individual modules can be extracted into separate services later if needed.
+EngageFlow is a Laravel modular monolith with an Inertia React frontend. The v1 product is Project-first, workflow-first, visual-builder-first, and single-user-first. There are no microservices in v1.
 
-There are no microservices in v1.
+The backend owns persistence, authorization, validation, and workflow/task business rules. The frontend owns page composition, MYDS-aligned UI, React Flow workflow editing, and client-side interaction state.
 
 ---
 
@@ -19,72 +17,55 @@ There are no microservices in v1.
 | Layer | Choice |
 |---|---|
 | Language | PHP 8.4 |
-| Framework | Laravel (latest stable) |
-| Frontend | Inertia.js + React |
-| Styling | Tailwind CSS |
-| Design System | MYDS (Malaysia Digital Services) |
-| Icons | FontAwesome |
-| Database | MySQL 8 |
-| Testing | PestPHP |
-| CI | GitHub Actions |
-| Local Dev | Docker Compose (container-first) |
+| Framework | Laravel |
+| Frontend | Inertia.js + React + TypeScript |
+| Styling | MYDS React, MYDS Style, and Tailwind CSS layout composition |
+| Icons | FontAwesome or MYDS-compatible icons |
+| Workflow canvas | `@xyflow/react` / React Flow |
+| Database | PostgreSQL with JSONB for Project workflow definitions |
+| ORM | Eloquent ORM and Laravel Query Builder |
+| Authentication | Laravel session authentication |
+| Authorization | Laravel Policies with owner-only Project access in v1 |
+| Testing | PestPHP, PHPStan/Larastan, Laravel Pint, TypeScript, and Vite build checks |
+| CI | GitHub Actions staged quality gates |
+| Local Dev | Docker Compose container-first development |
 
 ---
 
-## Modular Structure
+## Application Areas
 
-The application is organised into modules under `app/Modules/`. Each module owns its own models, services, policies, events, listeners, and HTTP controllers.
-
-| Module | Responsibility |
+| Area | Responsibility |
 |---|---|
-| AgencyOwnerManagement | CRUD for agency owners |
-| ServiceTracking | CRUD for services, target completion, delayed flag |
-| WorkflowStageTracking | Stage status updates, active stage logic |
-| FollowUpActionTracking | Follow-up action CRUD, overdue detection |
-| DocumentLinkTracking | Polymorphic document link CRUD |
-| SpecialProjectTracking | Special project CRUD |
-| Dashboard | Aggregated progress view, summary counts, search, filter |
-| UserRoleAccess | User management, role assignment, authentication |
-| AuditHistoryTracking | Recording and querying change history |
-
-> Detailed module documentation is in [docs/project-structure.md](project-structure.md).
-
----
-
-## Service Layer Pattern
-
-Controllers call service classes. Service classes call Eloquent models and fire events.
-
-```
-Controller → Service → Eloquent Model
-                    ↘ Event → Listener (audit, future notifications)
-```
+| Authentication | Login, logout, session protection, and Inertia auth props |
+| Projects | Owner-scoped Project creation, selection, editing, and authorization |
+| Project Workflows | One JSONB workflow definition per Project |
+| Workflow Builder | React Flow canvas, ordered stages, mandatory flags, validation, save, and reload |
+| Tasks | Task records created from a snapshot of the current Project workflow |
+| Task Workflow Steps | Relational step snapshots and progress/status tracking |
+| Dashboard | Project-scoped counts, progress, delayed status, search, and filters |
+| Deliverables | Expected Task outputs and status tracking |
+| Document Links | External URLs attached to supported entities; no file upload in v1 |
+| Follow-Ups | Operational action tracking and overdue status |
+| Audit History | Status-change history for workflow steps, deliverables, and follow-ups |
 
 ---
 
-## API-First Approach
+## Backend Boundaries
 
-The backend uses an API-first approach. Business logic lives in service/action classes that can be called by both Inertia controllers (web frontend) and JSON API controllers (future mobile client).
+Business rules belong in actions, policies, form requests, model relationships, and tests. Hidden frontend state must not be the only enforcement point.
 
-Backend modules do **not** call each other through HTTP inside the monolith. Use direct service/action calls and Eloquent relationships.
-
----
-
-## Events and Listeners
-
-Events are used for decoupled side effects such as audit history recording.
-
-| Event | Fired By | Listener | Action |
-|---|---|---|---|
-| `StageStatusChanged` | WorkflowStageService | AuditHistoryListener | Record stage status change |
-| `FollowUpActionStatusChanged` | FollowUpActionService | AuditHistoryListener | Record follow-up status change |
+Workflow definition validation is server-side. Routine dashboard counts use relational Task and TaskWorkflowStep data, not raw JSON parsing.
 
 ---
 
-## Future Extraction
+## Frontend Boundaries
 
-Module boundaries are clear enough that selected modules could be converted into microservices later if there is a real operational need. Future extraction should be driven by scale, ownership, or deployment needs — not by v1 architecture preference.
+React components should be modular and typed. Page-level components compose small feature components, while feature components expose clear props and avoid coupling to unrelated pages.
+
+The WorkflowCanvas is design-time only. Task progress and TaskWorkflowStep status updates happen outside the canvas.
 
 ---
 
-> This document will be expanded with diagrams and detailed module descriptions during implementation.
+## Future Scope Boundaries
+
+The following are not part of v1: collaboration, OIDC/SSO, Spatie Permission, workflow automation, file uploads, external repository integrations, public API, mobile app, microservices, and cross-Project dashboards.

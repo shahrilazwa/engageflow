@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
         "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -13,17 +14,22 @@
         "@fortawesome/react-fontawesome": "^3.3.1",
         "@inertiajs/react": "^3.2.0",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/node": "^25.9.1",
+        "@types/react": "^19.2.15",
+        "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.2",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^3.1",
         "react": "^19.2.6",
         "react-dom": "^19.2.6",
         "tailwindcss": "^4.0.0",
+        "typescript": "^6.0.3",
         "vite": "^8.0.0"
     },
     "dependencies": {
         "@govtechmy/myds-react": "^1.0.2",
         "@govtechmy/myds-style": "^1.0.0",
+        "@xyflow/react": "^12.10.2",
         "axios": "^1.16.1"
     }
 }

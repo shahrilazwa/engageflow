@@ -1,116 +1,88 @@
 # Testing Guide
 
-> **Status:** Skeleton — detailed content will be expanded as implementation progresses.
-
-This document explains how to run tests and the testing approach used in EngageFlow.
+This document explains how to run EngageFlow checks from containers.
 
 ---
 
 ## Testing Stack
 
-- **PestPHP** — primary testing framework (built on PHPUnit)
-- **PHPStan** (via `nunomaduro/larastan`) — static analysis at level 5
-- **Laravel Pint** — code style enforcement
+- PestPHP for automated backend tests
+- PHPStan via Larastan for backend static analysis
+- Laravel Pint for PHP code style
+- TypeScript for frontend contract checks
+- Vite for frontend production build verification
 
 ---
 
-## Running Tests
-
-All test commands run inside the Docker container:
+## Backend Tests
 
 ```bash
 # Run the full test suite
 docker compose exec app php artisan test
 
-# Run with verbose output
-docker compose exec app php artisan test --verbose
+# Run unit tests only
+docker compose exec app php artisan test --testsuite=Unit
+
+# Run feature tests only
+docker compose exec app php artisan test --testsuite=Feature
 
 # Run a specific test file
 docker compose exec app php artisan test tests/Feature/ExampleTest.php
-
-# Run a specific test by name
-docker compose exec app php artisan test --filter "test_the_application_returns_a_successful_response"
 ```
 
 ---
 
-## Running PHPStan
+## Static Analysis And Style
 
 ```bash
-# Run static analysis (level 5)
+# Run static analysis
 docker compose exec app vendor/bin/phpstan analyse
 
-# Run with verbose output
-docker compose exec app vendor/bin/phpstan analyse --verbose
-```
-
-PHPStan configuration is in `phpstan.neon`.
-
----
-
-## Running Laravel Pint
-
-```bash
-# Check code style (test mode — no changes)
+# Check PHP code style
 docker compose exec app vendor/bin/pint --test
 
-# Auto-fix code style issues
+# Auto-fix PHP code style
 docker compose exec app vendor/bin/pint
 ```
 
 ---
 
+## Frontend Checks
+
+```bash
+# Install frontend dependencies into the Docker node_modules volume
+docker compose run --rm node npm ci
+
+# Run TypeScript checks
+docker compose exec node npm run typecheck
+
+# Build frontend assets
+docker compose exec node npm run build
+```
+
+Do not run `npm`, `node`, `php`, `composer`, or `vendor/bin/*` commands directly on the host machine.
+
+---
+
 ## Test Organisation
 
-```
+```text
 tests/
-├── Feature/        # HTTP-level tests (controllers, routes, policies)
-├── Property/       # Property-style tests for critical business rules
-└── Unit/           # Unit tests for service classes and helpers
+|-- Feature/        # HTTP-level tests for routes, requests, controllers, and policies
+|-- Property/       # Property-style tests for selected business rules, when added
+`-- Unit/           # Unit tests for service classes and helpers
 ```
 
 ---
 
 ## Testing Approach
 
-### Unit Tests
+Unit tests cover isolated business rules and pure helpers. Feature tests cover the HTTP request/response cycle, owner-only Project access, database persistence, validation, and Project scoping.
 
-Each service class has unit tests covering:
-- Happy path for each operation
-- Validation rejection for invalid inputs
-- Business rule enforcement (delayed flag, overdue flag, progress calculation)
-- Authorization policy enforcement
-
-### Feature Tests
-
-Feature tests cover the full HTTP request/response cycle:
-- Key endpoints return correct responses
-- Role-based access (Admin vs Engagement_Lead vs Engagement_Officer)
-- Search and filter correctness
-- Audit history recording
-- Document link handling
-
-### Property-Style Tests
-
-Property-style tests are used for selected critical business rules where input variation meaningfully increases confidence:
-
-| Test | Business Rule |
-|---|---|
-| `DelayedFlagPropertyTest` | Delayed flag correctness (P4) |
-| `MonthEndTargetPropertyTest` | Month-end target date (P5) — covered by unit tests |
-| `FollowUpOverduePropertyTest` | Overdue follow-up logic (P6) |
-| `DashboardSummaryPropertyTest` | Dashboard summary count consistency (P12) |
-
-Iteration count is practical and configurable — not hardcoded.
+Property-style tests may be added for high-value business rules such as progress calculation, delayed status, overdue follow-ups, and dashboard count consistency.
 
 ---
 
-## Database in Tests
+## Database In Tests
 
-Tests use **SQLite in-memory** by default (configured in `phpunit.xml`). This keeps tests fast and isolated.
-
-The CI pipeline runs migrations against a real MySQL service container to validate that migrations work correctly.
-
----
-
-> This document will be expanded with test examples and coverage guidance during implementation.
+Tests use PostgreSQL. Local tests connect to the Docker Compose `db` service and use the `engageflow_test` database. CI uses a PostgreSQL service container with the same database name.

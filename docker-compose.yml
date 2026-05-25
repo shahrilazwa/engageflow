@@ -1,25 +1,20 @@
 services:
-
-  # ─── Application (PHP 8.4 + Nginx) ───────────────────────────────────────────
   app:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
-    container_name: engageflow_app
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      # Mount source code for live editing; vendor stays inside the image
       - .:/var/www/html
       - vendor_data:/var/www/html/vendor
     environment:
       - APP_ENV=${APP_ENV:-local}
-      - APP_KEY=${APP_KEY}
       - APP_URL=${APP_URL:-http://localhost:8000}
-      - DB_CONNECTION=mysql
+      - DB_CONNECTION=pgsql
       - DB_HOST=db
-      - DB_PORT=3306
+      - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE:-engageflow}
       - DB_USERNAME=${DB_USERNAME:-engageflow}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
@@ -29,48 +24,46 @@ services:
     networks:
       - engageflow
 
-  # ─── Node (frontend asset compilation) ───────────────────────────────────────
   node:
     image: node:lts-alpine
-    container_name: engageflow_node
     working_dir: /var/www/html
+    ports:
+      - "5173:5173"
     volumes:
       - .:/var/www/html
-    # Kept running so `docker compose exec node npm ...` works
+      - node_modules_data:/var/www/html/node_modules
     command: sh -c "tail -f /dev/null"
     networks:
       - engageflow
 
-  # ─── Database (MySQL 8) ───────────────────────────────────────────────────────
   db:
-    image: mysql:8
-    container_name: engageflow_db
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-engageflow}
-      MYSQL_USER: ${DB_USERNAME:-engageflow}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+      POSTGRES_DB: ${DB_DATABASE:-engageflow}
+      POSTGRES_USER: ${DB_USERNAME:-engageflow}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-engageflow} -d ${DB_DATABASE:-engageflow}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - engageflow
 
-# ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:
   db_data:
+    driver: local
+  node_modules_data:
     driver: local
   vendor_data:
     driver: local
 
-# ─── Networks ─────────────────────────────────────────────────────────────────
 networks:
   engageflow:
     driver: bridge

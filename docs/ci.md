@@ -14,35 +14,31 @@ The workflow file is at `.github/workflows/ci.yml`.
 
 ---
 
-## CI Pipeline Steps
+## CI Pipeline Stages
 
-| Step | Command | Purpose |
-|---|---|---|
-| Checkout code | `actions/checkout@v4` | Get the source code |
-| Set up PHP 8.4 | `shivammathur/setup-php@v2` | Install PHP with required extensions |
-| Cache Composer | `actions/cache@v4` | Speed up dependency installation |
-| Install dependencies | `composer install` | Install PHP packages |
-| Copy env file | `cp .env.ci .env` | Set up CI environment |
-| Generate app key | `php artisan key:generate` | Set APP_KEY |
-| Run migrations | `php artisan migrate --force` | Validate migrations against MySQL |
-| Run tests | `php artisan test --no-coverage` | Run the full test suite |
-| PHPStan | `vendor/bin/phpstan analyse --no-progress` | Static analysis at level 5 |
-| Laravel Pint | `vendor/bin/pint --test` | Code style check |
+| Stage | Purpose |
+|---|---|
+| Stage 1 - Install and cache | Install Composer and npm dependencies |
+| Stage 2 - Code style | Run Laravel Pint |
+| Stage 3 - Static analysis | Run PHPStan/Larastan and TypeScript checks |
+| Stage 4 - Backend unit tests | Run Pest unit tests |
+| Stage 5 - Database and feature tests | Run PostgreSQL migrations and Pest feature tests |
+| Stage 6 - Frontend build and contracts | Run TypeScript and Vite build |
 
 ---
 
-## MySQL Service Container
+## PostgreSQL Service Container
 
-CI uses a MySQL 8 service container for the migration step. The service is configured with a health check so the migration step waits until MySQL is ready.
+CI uses a PostgreSQL service container for the migration and feature-test stage. The service is configured with a health check so the migration step waits until PostgreSQL is ready.
 
-Tests themselves use SQLite in-memory (via `phpunit.xml` env overrides) for speed.
+Unit tests should stay fast and avoid database work where practical. Feature tests use the PostgreSQL service when persistence behavior matters.
 
 ---
 
 ## CI Environment File
 
 The `.env.ci` file is committed to the repository and used by CI instead of `.env`. It contains:
-- MySQL connection details matching the GitHub Actions service container
+- PostgreSQL connection details matching the GitHub Actions service container
 - `APP_ENV=testing`
 - Array drivers for session, cache, and mail (no external services needed)
 
@@ -74,7 +70,7 @@ PRs require at least one reviewer approval before merge.
 The following branch protection rules should be configured in GitHub Settings:
 
 - Require pull request before merging
-- Require CI status checks to pass (the `test` job)
+- Require CI status checks to pass
 - Require branch to be up to date before merging
 - Require conversation resolution before merging
 - Do not allow direct commits to `main`
