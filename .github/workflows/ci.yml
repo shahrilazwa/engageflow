@@ -21,6 +21,13 @@ jobs:
           extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
           coverage: none
 
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
       - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
@@ -48,6 +55,13 @@ jobs:
           extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
           coverage: none
 
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
@@ -68,6 +82,13 @@ jobs:
           php-version: "8.4"
           extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
           coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
@@ -101,6 +122,13 @@ jobs:
           php-version: "8.4"
           extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
           coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -142,6 +170,13 @@ jobs:
           php-version: "8.4"
           extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
           coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader

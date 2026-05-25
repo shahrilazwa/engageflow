@@ -77,13 +77,14 @@ Closes #5
 
 ### CI Must Pass Before Merge
 
-The GitHub Actions CI pipeline runs on every pull request. It checks:
+The GitHub Actions CI pipeline runs on every pull request in staged jobs:
 
-- `vendor/bin/pint --test` - code style
-- `vendor/bin/phpstan analyse` - static analysis at level 5
-- `php artisan test` - automated test suite
-- `npm run typecheck` - TypeScript contract check
-- `npm run build` - frontend asset build
+- Stage 1 - Install and cache
+- Stage 2 - Code style
+- Stage 3 - Static analysis
+- Stage 4 - Backend unit tests
+- Stage 5 - Database and feature tests
+- Stage 6 - Frontend build and contracts
 
 Local verification runs the same checks inside Docker Compose:
 
@@ -198,10 +199,11 @@ Create a project board in **GitHub → Projects** with these columns:
 Configure in **GitHub → Settings → Branches → Add branch ruleset** for `main`:
 
 - ✅ Require a pull request before merging
-- ✅ Require status checks to pass (add the `test` CI job)
+- ✅ Require status checks to pass for the required GitHub Actions stages
 - ✅ Require branches to be up to date before merging
 - ✅ Require conversation resolution before merging
 - ✅ Do not allow bypassing the above settings
+- Avoid requiring third-party app checks unless the team intentionally depends on them for every PR
 
 ## Planned Stack
 
