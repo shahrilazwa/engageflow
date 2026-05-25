@@ -177,7 +177,7 @@ Create these milestones in **GitHub → Issues → Milestones**:
 3. v1 Workflow Tracking
 4. v1 Dashboard and Graphical Progress
 5. v1 Follow-Up and Document Links
-6. v1 Special Projects
+6. v1 Deliverables and Document Links
 7. v1 Audit and History
 8. v1 Search and Filter
 9. v1 Documentation
@@ -225,11 +225,14 @@ Project documentation lives in the `docs/` directory.
 
 | File | Contents |
 |---|---|
-| [docs/architecture.md](docs/architecture.md) | Architecture overview: modular monolith, tech stack, module list, service layer pattern, API-first approach |
+| [docs/project-brief.md](docs/project-brief.md) | Product summary, core model, dashboard scope, and explicit v1 non-goals |
+| [docs/architecture.md](docs/architecture.md) | Architecture overview, target stack, app areas, backend/frontend boundaries |
 | [docs/setup.md](docs/setup.md) | Container-first setup guide, Docker Compose quick start, useful commands |
-| [docs/project-structure.md](docs/project-structure.md) | Directory layout, module structure, frontend structure, MYDS/Tailwind/FontAwesome guidance |
-| [docs/workflow-status.md](docs/workflow-status.md) | Engagement workflow stages, stage statuses, progress calculation, delayed flag, overdue follow-up logic |
+| [docs/project-structure.md](docs/project-structure.md) | Directory layout, backend organization, frontend structure, lego-style component guidance |
+| [docs/workflow-status.md](docs/workflow-status.md) | Project workflow definitions, Task workflow snapshots, status values, progress, delayed logic |
+| [docs/workflow-builder.md](docs/workflow-builder.md) | Visual Workflow Builder scope, components, persistence, and review notes |
+| [docs/deliverables.md](docs/deliverables.md) | Task Deliverable scope, relationship to Tasks, document links, and review notes |
 | [docs/testing.md](docs/testing.md) | How to run tests, PHPStan, Pint; test organisation; property-style tests |
 | [docs/ci.md](docs/ci.md) | GitHub Actions CI pipeline steps, PostgreSQL service, branch strategy, branch protection |
-| [docs/user-guide.md](docs/user-guide.md) | User guide for engagement officers |
+| [docs/user-guide.md](docs/user-guide.md) | User guide skeleton for Projects, workflow builder, Tasks, deliverables, links, follow-ups, dashboard, and history |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common Docker, Composer, migration, and permission issues |

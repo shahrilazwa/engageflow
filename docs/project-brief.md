@@ -1,146 +1,100 @@
-# EngageFlow Project Brief
+# Project Brief
 
-## What is EngageFlow?
-
-EngageFlow is an internal web application for the GovTech Malaysia engagement team. It replaces a manual Excel tracker with a structured, role-based system that provides graphical progress views, workflow stage tracking, follow-up action management, and audit history.
-
-The goal is to give the engagement team a clear, visual picture of where each ministry/agency-owned service is in the onboarding process — at a glance, without digging through spreadsheets.
+This document summarizes the current EngageFlow product direction.
 
 ---
 
-## Business Context
+## Product Summary
 
-GovTech engages ministries and agencies to bring their digital services into MyGOV. These services are not originally MyGOV features — they are owned by the ministry or agency.
+EngageFlow helps a user define a Project workflow visually, create Tasks from that workflow, and track Task progress, deliverables, document links, follow-ups, and history within the selected Project.
 
-**Example:** `Pembayaran Saman` is a service in the PDRM ecosystem. It is not originally a MyGOV feature. GovTech wants to make it available through MyGOV by engaging PDRM through the onboarding workflow.
+The v1 product is:
 
----
-
-## The Business Problem
-
-The engagement team currently tracks all of this manually in Excel. It is difficult to quickly know:
-
-- which services are being tracked;
-- which ministry or agency owns each service;
-- which workflow stage each service is at;
-- what is pending, delayed, or needs follow-up;
-- which services have reached Go-Live;
-- the overall engagement progress across all services.
-
-EngageFlow solves this by providing a structured, searchable, visual tracker.
+- Project-first
+- Workflow-first
+- Visual-builder-first
+- Single-user-first
 
 ---
 
-## Tracker Structure
+## Core Model
 
-The tracker is organised around this hierarchy:
-
-```
-Ministry / Agency Owner
-  └── Agency-Owned Service
-        └── Engagement / Integration Workflow (10 stages)
+```text
+User
+`-- Project
+    |-- ProjectWorkflow
+    `-- Task
+        |-- TaskWorkflowStep
+        |-- TaskDeliverable
+        |-- DocumentLink
+        |-- FollowUpAction
+        `-- AuditEntry
 ```
 
-One ministry or agency can have many services. Each service has its own workflow progress. Special projects that do not fit the standard hierarchy are tracked separately.
+In v1, Project access is owner-only. Collaboration and membership are future scope.
 
 ---
 
-## 10-Stage Engagement Workflow
+## Workflow Builder
 
-Each agency-owned service goes through a fixed 10-stage workflow:
+Each Project has one visual workflow definition. The user builds ordered workflow stages using React Flow.
 
-| Stage | Name |
-|---|---|
-| 1 | Surat Permohonan Onboard |
-| 2 | Sesi Libat Urus |
-| 3 | Surat Permohonan Integrasi |
-| 4 | Kelulusan |
-| 5 | Perbincangan / Bengkel Teknikal |
-| 6 | Bengkel SAF |
-| 7 | Pembangunan |
-| 8 | SIT |
-| 9 | UAT |
-| 10 | Go-Live |
+Workflow definitions are stored as PostgreSQL JSONB and include labels, mandatory flags, order, positions, edges, and viewport metadata.
 
-Stages can be updated in any order — real engagement work does not always happen sequentially.
-
-Each stage can be set to one of these statuses: **Pending**, **In Progress**, **Completed**, **KIV**, **Not Applicable**, **Blocked**, **To Be Confirmed**.
+The Workflow Builder is design-time only. It is not used to update Task step status.
 
 ---
 
-## Graphical Progress and Status Tracking
+## Task Progress
 
-EngageFlow presents engagement progress visually. The engagement team can quickly see:
+When a Task is created, EngageFlow copies the current Project workflow into relational TaskWorkflowStep rows.
 
-- the current workflow stage of each service;
-- which stages are completed, in progress, or pending;
-- which services are delayed or at risk;
-- which services have reached Go-Live;
-- overall progress across all tracked services.
+This snapshot allows existing Tasks to retain their workflow shape even if the Project workflow changes later.
 
-Visual elements include a horizontal workflow timeline per service, status badges, summary cards, and a dashboard with counts and filters.
+Progress uses mandatory steps only. Optional steps are visible but do not change the mandatory progress percentage.
 
 ---
 
-## Target Completion and Delayed Tracking
+## Dashboard
 
-Each service can have a target completion date (the expected Go-Live date). If only the month is known, the last day of that month is used.
+The Project dashboard shows progress within one selected Project.
 
-A service is flagged as **delayed** when its target completion date has passed and it has not reached Go-Live. Delayed services are highlighted on the dashboard and can be filtered.
+V1 dashboard areas include:
 
----
+- Total Tasks
+- Completed Tasks
+- In-progress Tasks
+- Delayed Tasks
+- Task list with active step and progress
+- Search and basic filters
 
-## Follow-Up Actions
-
-Follow-up actions can be attached to any service or special project. Each follow-up action has a title, due date, status, and remarks.
-
-A follow-up action is flagged as **overdue** when its due date has passed and its status is not Done or Cancelled. Overdue actions are displayed prominently on the dashboard.
-
-Follow-up action statuses: **Open**, **In Progress**, **Done**, **Cancelled**.
-
----
-
-## Document Links
-
-Document links are external URLs (typically Google Drive links) attached to a service, workflow stage, special project, or follow-up action. The system stores the URL and an optional label — no files are uploaded or synced.
+Deliverable and Follow-Up summaries are added in later MVP slices.
 
 ---
 
-## Special Projects
+## Deliverables, Links, Follow-Ups, And History
 
-Special projects are tracked items that do not follow the standard agency owner → service hierarchy. In v1, special projects are tracked with a title, status, target date, follow-up actions, and document links. They do not use the 10-stage workflow.
+Deliverables track expected Task outputs separately from workflow progress.
 
-Special project statuses: **Open**, **In Progress**, **Completed**, **KIV**, **Cancelled**.
+Document Links store external URLs only. V1 does not upload files or integrate with external repositories.
 
----
+Follow-Up Actions track operational follow-through and overdue items.
 
-## Roles
-
-| Role | Access |
-|---|---|
-| Admin | Manage users and roles, plus all below |
-| Engagement Lead | Create and update all tracked entities |
-| Engagement Officer | Create and update all tracked entities |
+Audit History records status changes for TaskWorkflowSteps, TaskDeliverables, and FollowUpActions.
 
 ---
 
-## v1 Scope Exclusions
+## Explicit V1 Non-Goals
 
-The following are explicitly out of scope for v1:
+V1 does not include:
 
-- Email, WhatsApp, or push notifications
-- Google Drive API integration, file upload, or folder sync
-- Excel import
-- Mobile application
-- Microservices or distributed architecture
-- Re-engagement workflows (each service has one active workflow in v1)
-- Viewer-only role (can be added later)
-
----
-
-## Further Reading
-
-- [docs/architecture.md](architecture.md) — system architecture and module structure
-- [docs/setup.md](setup.md) — local development setup
-- [docs/workflow-status.md](workflow-status.md) — detailed workflow and status logic
-- [docs/user-guide.md](user-guide.md) — user guide for engagement officers
+- Collaboration
+- OIDC or SSO
+- Spatie Permission
+- Workflow automation
+- File uploads
+- External repository integrations
+- Public API
+- Mobile app
+- Microservices
+- Cross-Project dashboard
