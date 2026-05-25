@@ -110,25 +110,25 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
 
 ---
 
-- [ ] 4. Implement Laravel session authentication
+- [x] 4. Implement Laravel session authentication
   - MVP slice: MVP 0 Foundation
   - Labels: feature, backend, frontend
   - Depends on: Task 1
   - Description: Implement login, logout, authenticated route protection, and Inertia auth props. V1 does not include Keycloak, OIDC, SSO, registration, or global role requirements.
   - Linked requirement/design: Requirement 1; Design 10
   - Acceptance checklist:
-    - [ ] Login page is an Inertia React page
-    - [ ] Login form uses MYDS-aligned controls
-    - [ ] Successful login creates a Laravel session
-    - [ ] Failed login shows a clear validation error
-    - [ ] Logout destroys the session
-    - [ ] Unauthenticated users are redirected to login
-    - [ ] Authenticated users can access the app shell
-    - [ ] No Keycloak, OIDC, SSO, or external identity provider is required
+    - [x] Login page is an Inertia React page
+    - [x] Login form uses MYDS-aligned controls
+    - [x] Successful login creates a Laravel session
+    - [x] Failed login shows a clear validation error
+    - [x] Logout destroys the session
+    - [x] Unauthenticated users are redirected to login
+    - [x] Authenticated users can access the app shell
+    - [x] No Keycloak, OIDC, SSO, or external identity provider is required
   - Test expectation: Feature tests for successful login, failed login, logout, and unauthenticated redirect.
   - UI/design review checkpoint:
-    - [ ] Review Login page layout, MYDS usage, error state, focus state, and mobile behavior
-    - [ ] Confirm no Jata Negara or official crest artwork appears
+      - [x] Review Login page layout, MYDS usage, error state, focus state, and mobile behavior
+      - [x] Confirm no Jata Negara or official crest artwork appears
 
 ---
 
