@@ -54,3 +54,28 @@ textarea {
     border-color: #93c5fd !important;
     color: #ffffff !important;
 }
+
+.app-shell-desktop-nav,
+.app-shell-desktop-actions {
+    display: none;
+}
+
+.app-shell-mobile-toggle {
+    display: inline-flex;
+}
+
+.app-shell-mobile-panel {
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .app-shell-desktop-nav,
+    .app-shell-desktop-actions {
+        display: flex;
+    }
+
+    .app-shell-mobile-toggle,
+    .app-shell-mobile-panel {
+        display: none;
+    }
+}

@@ -130,12 +130,12 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
                         <div className="flex min-w-0 items-center gap-6">
                             <AppBrand compact />
 
-                            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+                            <nav className="app-shell-desktop-nav items-center gap-1" aria-label="Primary navigation">
                                 {navigationItems.map((item) => renderNavigationItem(item))}
                             </nav>
                         </div>
 
-                        <div className="hidden min-w-0 items-center gap-4 sm:flex">
+                        <div className="app-shell-desktop-actions min-w-0 items-center gap-4">
                             {user && (
                                 <div className="min-w-0 text-right">
                                     <p className="truncate text-sm font-medium leading-5 text-gray-950">{user.name}</p>
@@ -153,7 +153,7 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
 
                         <button
                             type="button"
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition hover:bg-gray-100 hover:text-gray-950 md:hidden"
+                            className="app-shell-mobile-toggle h-10 w-10 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition hover:bg-gray-100 hover:text-gray-950"
                             aria-label={mobileMenuOpen ? 'Tutup navigasi' : 'Buka navigasi'}
                             aria-expanded={mobileMenuOpen}
                             aria-controls="mobile-navigation"
@@ -165,7 +165,7 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
                 </div>
 
                 {mobileMenuOpen && (
-                    <div id="mobile-navigation" className="border-t border-gray-200 bg-white md:hidden">
+                    <div id="mobile-navigation" className="app-shell-mobile-panel border-t border-gray-200 bg-white">
                         <div className="mx-auto max-w-7xl space-y-3 px-4 py-4 sm:px-6">
                             <nav className="space-y-1" aria-label="Mobile navigation">
                                 {navigationItems.map((item) => renderNavigationItem(item, true))}
