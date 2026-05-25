@@ -123,7 +123,7 @@ export default function Login() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="mt-2 flex h-11 w-full items-center justify-center rounded-md border border-blue-700 bg-blue-700 px-4 text-sm font-semibold leading-5 text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-blue-300 disabled:bg-blue-300"
+                                    className="auth-submit-button mt-2 flex h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-semibold leading-5 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed"
                                 >
                                     {processing ? 'Sedang log masuk...' : 'Log Masuk'}
                                 </button>

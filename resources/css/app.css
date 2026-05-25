@@ -37,3 +37,20 @@ textarea {
 .font-body {
     font-family: var(--font-sans);
 }
+
+.auth-submit-button {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.auth-submit-button:hover:not(:disabled) {
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+
+.auth-submit-button:disabled {
+    background-color: #93c5fd !important;
+    border-color: #93c5fd !important;
+    color: #ffffff !important;
+}
