@@ -12,18 +12,18 @@ Core v1 model:
 
 ```text
 User
-└── Project
-    ├── Visual Workflow Definition (PostgreSQL JSONB)
-    │   ├── Workflow nodes
-    │   ├── Workflow edges
-    │   ├── Node positions
-    │   └── Viewport/layout metadata
-    └── Tasks
-        ├── Task Workflow Steps (relational progress snapshot)
-        ├── Task Deliverables
-        ├── Follow-Up Actions
-        ├── Document Links
-        └── Status History
+`-- Project
+    |-- Visual Workflow Definition (PostgreSQL JSONB)
+    |   |-- Workflow nodes
+    |   |-- Workflow edges
+    |   |-- Node positions
+    |   `-- Viewport/layout metadata
+    `-- Tasks
+        |-- Task Workflow Steps (relational progress snapshot)
+        |-- Task Deliverables
+        |-- Follow-Up Actions
+        |-- Document Links
+        `-- Status History
 ```
 
 If a user needs to track a different stream of work, they create another Project. Flexibility inside a Project is handled by the visual workflow definition and mandatory/optional workflow steps.
@@ -37,15 +37,15 @@ If a user needs to track a different stream of work, they create another Project
 | Area | Decision | Notes |
 |---|---|---|
 | Backend framework | Laravel | Keep Laravel for MVP; it fits auth, policies, actions, migrations, tests, and dashboard workflows |
-| Frontend | Inertia.js + React | Required because the visual workflow builder needs a rich React UI |
-| Visual workflow UI | React-based WorkflowCanvas | Core v1 feature, not a future enhancement |
+| Frontend | Inertia.js + React + TypeScript | Required because the visual workflow builder needs a rich React UI with typed workflow JSON, Inertia props, and component contracts |
+| Visual workflow UI | `@xyflow/react` / React Flow wrapped by WorkflowCanvas | Core v1 feature; use a proven node/edge/viewport library instead of hand-rolling canvas behaviour |
 | Database | PostgreSQL | Replaces MySQL because workflow definitions benefit from JSONB |
 | Workflow definition storage | PostgreSQL JSONB | Source of truth for visual Project workflow design and layout |
 | Task progress storage | Relational tables | Query-heavy task status, progress, dashboard, deliverables, and audit data stay relational |
 | ORM / data access | Eloquent ORM + Query Builder | Laravel-native; do not introduce Prisma in v1 |
 | Authentication | Laravel session auth | Do not introduce Keycloak in v1 |
 | Authorization | Laravel Policies | Do not introduce Spatie Permission in v1 |
-| Styling | Tailwind CSS + MYDS-inspired components | White-based, clean, componentised UI |
+| Styling | MYDS React + MYDS Style + Tailwind CSS | Use MYDS as the primary UI system; Tailwind may compose layout around MYDS tokens/components |
 | Tests | PestPHP | Feature, unit, and selected property-style tests |
 | Local dev | Docker Compose | Container-first development |
 
@@ -65,6 +65,19 @@ Do not introduce these in the first MVP:
 - Conditional transitions.
 - Runtime actions, connectors, webhooks, or hooks.
 - File upload or document repository integration.
+- Custom canvas engine for node/edge editing.
+
+Use TypeScript for new React/Inertia code. Existing JavaScript or JSX files may be migrated incrementally when touched, but new Workflow Builder, Dashboard, Task, Deliverable, Follow-Up, Document Link, and shared UI modules should be `.tsx` unless there is a clear reason not to.
+
+Use MYDS because EngageFlow is a GovTech Malaysia-oriented product and should follow Malaysia Government Design System interaction, accessibility, typography, spacing, and component conventions. MYDS is acceptable for government and public-facing use, but EngageFlow SHALL NOT include Jata Negara or official government crest artwork unless explicit future approval and usage rights are documented.
+
+MYDS source references:
+
+- MYDS documentation: `https://design.digital.gov.my/`
+- MYDS GitHub repository: `https://github.com/govtechmy/myds`
+- MYDS packages used by EngageFlow: `@govtechmy/myds-react` and `@govtechmy/myds-style`
+
+Use the MYDS documentation and GitHub repository as the implementation reference for components, tokens, accessibility conventions, examples, and package usage. If a local copied Figma file is available, it may be used for visual reference, but implementation should still align with the official MYDS package APIs and documentation.
 
 These may be reconsidered later only when the product need is real.
 
@@ -78,6 +91,7 @@ These may be reconsidered later only when the product need is real.
 - User can create and manage multiple Projects.
 - Each Project has one Visual Workflow Definition stored as JSONB.
 - User can visually create and edit a Project Workflow using the WorkflowCanvas inside the Visual Workflow Builder.
+- WorkflowCanvas is implemented with `@xyflow/react` / React Flow and wrapped behind EngageFlow components.
 - WorkflowCanvas supports ordered stage-style workflows for v1.
 - User can add workflow stage nodes.
 - User can edit workflow stage labels.
@@ -88,7 +102,7 @@ These may be reconsidered later only when the product need is real.
 - WorkflowCanvas stores node position and viewport data in JSONB so the visual layout can be restored later.
 - After Tasks exist, WorkflowCanvas allows layout-only changes and blocks structural workflow changes in v1.
 - User can create Tasks only after the Project workflow has at least one mandatory workflow node.
-- Each Task receives relational Task Workflow Step rows copied from the Project Workflow Definition.
+- Each Task receives relational Task Workflow Step rows copied from all workflow nodes in the Project Workflow Definition, including Mandatory and Optional nodes.
 - User can update Task Workflow Step status outside the WorkflowCanvas.
 - User can set a target completion date for a Task.
 - User can record Task Deliverables such as documents, slide decks, spreadsheets, Figma/design files, repository links, URLs, or other outputs.
@@ -130,28 +144,28 @@ It remains one Laravel application. The codebase is organised by feature area us
 
 ```text
 React / Inertia Pages and Components
-    ├── Visual Workflow Builder
-    │   ├── WorkflowCanvas
-    │   ├── WorkflowNode
-    │   ├── WorkflowEdge
-    │   ├── WorkflowStepInspector
-    │   ├── WorkflowToolbar
-    │   └── WorkflowStepList
-    └── Project / Task / Dashboard Screens
-        ↓
+    |-- Visual Workflow Builder
+    |   |-- WorkflowCanvas
+    |   |-- WorkflowNode
+    |   |-- WorkflowEdge
+    |   |-- WorkflowStepInspector
+    |   |-- WorkflowToolbar
+    |   `-- WorkflowStepList
+    `-- Project / Task / Dashboard Screens
+        v
 Laravel Routes
-        ↓
+        v
 HTTP Controllers
-        ↓
+        v
 Form Requests + Policies
-        ↓
+        v
 Application Actions
-        ↓
+        v
 Eloquent Models / Query Builder
-        ↓
+        v
 PostgreSQL
-    ├── Relational tables
-    └── JSONB visual workflow definitions
+    |-- Relational tables
+    `-- JSONB visual workflow definitions
 ```
 
 ### 4.2 Visual Workflow Builder Request Flow
@@ -160,14 +174,14 @@ Saving a visual workflow definition follows this flow:
 
 ```text
 User edits workflow on WorkflowCanvas
-→ WorkflowBuilder updates local nodes/edges/viewport state
-→ User saves workflow
-→ Inertia submits JSON workflow definition
-→ Controller receives request
-→ Form Request validates workflow JSON shape
-→ Policy checks Project access
-→ Action validates business rules and saves ProjectWorkflow.definition JSONB
-→ Controller redirects or returns updated Inertia props
+-> WorkflowBuilder updates local nodes/edges/viewport state
+-> User saves workflow
+-> Inertia submits JSON workflow definition
+-> Controller receives request
+-> Form Request validates workflow JSON shape
+-> Policy checks Project access
+-> Action validates business rules and saves ProjectWorkflow.definition JSONB
+-> Controller redirects or returns updated Inertia props
 ```
 
 When Tasks do not exist, the save action may persist structural workflow changes such as nodes, labels, mandatory flags, order, and edges. When Tasks already exist, the save action must reject structural workflow changes and only persist layout-only changes such as node positions and viewport/layout metadata.
@@ -176,10 +190,10 @@ Loading a visual workflow definition follows this flow:
 
 ```text
 User opens Project Workflow Builder
-→ Controller checks Project access
-→ Query/action loads ProjectWorkflow.definition
-→ Controller returns workflow definition as Inertia props
-→ React WorkflowBuilder reconstructs WorkflowCanvas nodes, edges, positions, and viewport
+-> Controller checks Project access
+-> Query/action loads ProjectWorkflow.definition
+-> Controller returns workflow definition as Inertia props
+-> React WorkflowBuilder reconstructs WorkflowCanvas nodes, edges, positions, and viewport
 ```
 
 ### 4.3 Task Creation Flow from Visual Workflow
@@ -188,13 +202,13 @@ Task creation converts the visual workflow definition into relational progress r
 
 ```text
 User creates Task
-→ Controller validates Task input
-→ Policy checks Project access
-→ Action reads ProjectWorkflow.definition JSONB
-→ Action validates at least one mandatory stage node exists
-→ Action creates Task
-→ Action creates TaskWorkflowStep rows from workflow nodes
-→ Controller redirects to Task or Project dashboard
+-> Controller validates Task input
+-> Policy checks Project access
+-> Action reads ProjectWorkflow.definition JSONB
+-> Action validates at least one mandatory stage node exists
+-> Action creates Task
+-> Action creates TaskWorkflowStep rows from workflow nodes
+-> Controller redirects to Task or Project dashboard
 ```
 
 The JSONB workflow definition is the Project-level design source of truth. `TaskWorkflowStep` rows are the Task-level operational progress snapshot.
@@ -299,8 +313,8 @@ Backend guardrails:
 
 - Workflow JSON validation must be server-side, not only in React.
 - The save workflow action must validate node IDs, labels, mandatory flags, order, positions, and edges.
-- The save workflow action must block structural workflow changes after Tasks exist and allow layout-only changes.
-- Task creation must use an action to copy workflow nodes into `TaskWorkflowStep` rows.
+- The save workflow action must block structural workflow changes after Tasks exist, allow layout-only changes, and return a clear validation message for blocked structural saves.
+- Task creation must use an action to copy all workflow nodes, including Mandatory and Optional nodes, into `TaskWorkflowStep` rows.
 - Do not scatter workflow JSON parsing across controllers, models, and dashboard queries.
 
 ### 5.2 Frontend Structure
@@ -327,6 +341,9 @@ resources/js/
       WorkflowStepList.tsx
       WorkflowMiniMap.tsx        // optional, only if simple
       WorkflowEmptyState.tsx
+      workflowDefinitionMapper.ts
+      workflowTypes.ts
+      useWorkflowBuilderState.ts
     Tasks/
     Deliverables/
     FollowUps/
@@ -337,14 +354,18 @@ resources/js/
 Frontend guardrails:
 
 - Application screens are Inertia React.
+- New React/Inertia code should be TypeScript (`.tsx`) so workflow definitions, React Flow nodes/edges, Inertia props, form payloads, and dashboard data contracts are explicit.
 - Blade is only for the root Inertia view.
 - Visual Workflow Builder is a core v1 screen and should be implemented early.
-- Keep workflow builder components lego-style and reusable.
+- Keep workflow builder components lego-style and reusable: each component should own one clear UI responsibility and communicate through typed props, callbacks, and small shared hooks.
 - Keep WorkflowCanvas state isolated from Task and Dashboard components.
 - Avoid one giant workflow builder component.
 - Avoid one giant dashboard component.
 - UI may hide unavailable actions, but backend policies must enforce access.
 - When Tasks exist, the builder UI should clearly indicate that only layout changes are editable in v1.
+- Use MYDS React components for common controls such as buttons, text inputs, selects, badges, tabs, alerts, modals, drawers, tables, and pagination where MYDS provides them.
+- Use Tailwind for page layout, spacing, and small composition gaps around MYDS components; do not replace MYDS interaction patterns with custom one-off controls unless MYDS lacks the needed primitive.
+- Do not use Jata Negara or official government crest imagery in EngageFlow v1.
 
 ---
 
@@ -354,7 +375,7 @@ Frontend guardrails:
 |---|---|
 | Project Management | Create, update, list, and select Projects owned by the user |
 | Visual Workflow Builder | Canvas-like creation and editing of Project workflow nodes, edges, positions, order, and mandatory/optional settings |
-| WorkflowCanvas Application | Applies canvas UI as the design-time surface for Project workflow definitions only |
+| WorkflowCanvas Application | Applies `@xyflow/react` / React Flow as the design-time surface for Project workflow definitions only |
 | Workflow Definition Management | Validate, normalize, save, load, and detect structural changes in `ProjectWorkflow.definition` JSONB |
 | Task Tracking | Create, update, list, search, and filter Tasks inside a Project |
 | Task Workflow Snapshot | Convert Project workflow JSONB nodes into relational TaskWorkflowStep rows |
@@ -370,7 +391,7 @@ Feature dependency rules:
 
 - Project Management owns Projects.
 - Visual Workflow Builder edits ProjectWorkflow JSONB definition.
-- WorkflowCanvas is used only inside the Visual Workflow Builder screen.
+- WorkflowCanvas wraps `@xyflow/react` / React Flow and is used only inside the Visual Workflow Builder screen.
 - Workflow Definition Management validates and persists the JSONB definition.
 - Task Tracking creates Tasks but must call Task Workflow Snapshot logic to create TaskWorkflowStep rows.
 - Stage / Step Tracking updates copied TaskWorkflowStep rows only.
@@ -386,37 +407,37 @@ Feature dependency rules:
 
 ```text
 User
-  └── Project
-        ├── ProjectWorkflow
-        │     └── definition JSONB
-        │           ├── nodes[]
-        │           ├── edges[]
-        │           └── viewport/layout metadata
-        └── Task
-              ├── TaskWorkflowStep
-              ├── TaskDeliverable
-              ├── FollowUpAction
-              └── DocumentLink
+  `-- Project
+        |-- ProjectWorkflow
+        |     `-- definition JSONB
+        |           |-- nodes[]
+        |           |-- edges[]
+        |           `-- viewport/layout metadata
+        `-- Task
+              |-- TaskWorkflowStep
+              |-- TaskDeliverable
+              |-- FollowUpAction
+              `-- DocumentLink
 
 TaskWorkflowStep
-  └── DocumentLink
+  `-- DocumentLink
 
 TaskDeliverable
-  └── DocumentLink
+  `-- DocumentLink
 
 FollowUpAction
-  └── DocumentLink
+  `-- DocumentLink
 
 TaskWorkflowStep / TaskDeliverable / FollowUpAction
-  └── AuditEntry
+  `-- AuditEntry
 ```
 
 Future collaboration extension:
 
 ```text
 Project
-└── ProjectMember
-    └── User
+`-- ProjectMember
+    `-- User
 ```
 
 ### 7.2 User
@@ -546,7 +567,7 @@ Fields:
 Rules:
 
 - A Task belongs to one Project.
-- A Task receives relational workflow progress rows copied from the ProjectWorkflow definition at creation time.
+- A Task receives relational workflow progress rows copied from all ProjectWorkflow definition nodes at creation time, including Mandatory and Optional nodes.
 - A Task can have zero or more Task Deliverables.
 - Delayed status is computed on read.
 
@@ -568,12 +589,13 @@ Rules:
 
 - Created by reading `project_workflows.definition` when a Task is created.
 - Stores snapshot values so Task history remains stable if the Project workflow changes later.
+- One row is created for each workflow node, including Mandatory and Optional nodes.
 - Valid statuses: Pending, In_Progress, Completed, KIV, Not_Applicable, Blocked, To_Be_Confirmed.
 - `completed_at` is set when status becomes Completed.
 
 ### 7.9 TaskDeliverable
 
-A Task Deliverable represents an expected output from a Task. It is different from a generic Document Link. A Deliverable answers: “What output must this Task produce?” A Document Link answers: “Where is the related file/reference?”
+A Task Deliverable represents an expected output from a Task. It is different from a generic Document Link. A Deliverable answers: "What output must this Task produce?" A Document Link answers: "Where is the related file/reference?"
 
 Fields:
 
@@ -698,16 +720,18 @@ V1 builder behaviour:
 
 ```text
 Open Project Workflow
-→ Add stage node
-→ Name stage
-→ Mark Mandatory/Optional
-→ Drag/reposition stage visually
-→ Reorder stage sequence before Tasks exist
-→ Save workflow definition
-→ Reload workflow definition later with layout preserved
+-> Add stage node
+-> Name stage
+-> Mark Mandatory/Optional
+-> Drag/reposition stage visually
+-> Reorder stage sequence before Tasks exist
+-> Save workflow definition
+-> Reload workflow definition later with layout preserved
 ```
 
 The visual builder should show workflow nodes on a canvas-like area. V1 keeps the underlying logic as an ordered stage sequence, but the user experience should feel visual rather than only a plain form/table.
+
+WorkflowCanvas SHALL use `@xyflow/react` / React Flow for node rendering, edge rendering, selection, dragging, pan/zoom, fit-view behaviour, and viewport state. EngageFlow components SHALL wrap React Flow so app-specific workflow rules stay in EngageFlow actions, validators, mappers, and UI components rather than being scattered directly through React Flow callbacks.
 
 ### 8.2 How WorkflowCanvas Is Applied
 
@@ -719,11 +743,14 @@ WorkflowCanvas is responsible for:
 - rendering simple visual edges/connectors between ordered stages;
 - allowing node drag/reposition interactions;
 - maintaining local canvas state for nodes, edges, selected node, viewport position, and zoom;
+- mapping React Flow node, edge, and viewport state to the EngageFlow JSONB workflow definition shape;
 - passing selected node data to WorkflowStepInspector;
 - passing saveable workflow definition data back to WorkflowBuilder.
 
 WorkflowCanvas is **not** responsible for:
 
+- deciding server-side workflow validity;
+- deciding whether a workflow change is structural or layout-only;
 - updating TaskWorkflowStep status;
 - calculating Task progress;
 - rendering the Project dashboard;
@@ -744,30 +771,32 @@ Main usage flow:
 
 ```text
 Project Dashboard
-→ Open Visual Workflow Builder
-→ WorkflowBuilder loads ProjectWorkflow.definition JSONB
-→ WorkflowCanvas renders nodes, edges, positions, and viewport
-→ User adds/moves/selects nodes on canvas
-→ WorkflowStepInspector edits selected node details
-→ WorkflowToolbar saves workflow definition
-→ Backend validates JSON shape and business rules
-→ ProjectWorkflow.definition is updated
+-> Open Visual Workflow Builder
+-> WorkflowBuilder loads ProjectWorkflow.definition JSONB
+-> WorkflowCanvas renders nodes, edges, positions, and viewport
+-> User adds/moves/selects nodes on canvas
+-> WorkflowStepInspector edits selected node details
+-> WorkflowToolbar saves workflow definition
+-> Backend validates JSON shape and business rules
+-> ProjectWorkflow.definition is updated
 ```
 
-Before Tasks exist, WorkflowCanvas can support structure and layout edits. After Tasks exist, WorkflowCanvas must switch to layout-only editing in v1. The UI should make structural controls read-only or unavailable and explain that structural workflow migration/rebuild is a future feature.
+Before Tasks exist, WorkflowCanvas can support structure and layout edits. After Tasks exist, WorkflowCanvas must switch to layout-only editing in v1. The UI must make structural controls read-only or unavailable and explain that structural workflow migration/rebuild is a future feature. The backend save action remains the final authority and must reject blocked structural saves with a clear validation message.
 
 ### 8.3 Visual Builder Modules
 
 | UI Module | Responsibility |
 |---|---|
 | WorkflowBuilder | Parent component that owns builder state and save/load behaviour |
-| WorkflowCanvas | Canvas-like area for rendering nodes and edges |
-| WorkflowNode | Individual draggable stage node |
-| WorkflowEdge | Simple connector between ordered stage nodes |
+| WorkflowCanvas | EngageFlow wrapper around React Flow for rendering nodes, edges, viewport, selection, and drag interactions |
+| WorkflowNode | Custom React Flow node component for an individual draggable stage node |
+| WorkflowEdge | Custom or default React Flow edge component for simple connectors between ordered stage nodes |
 | WorkflowStepInspector | Side panel or drawer for editing selected node label and Mandatory/Optional setting |
 | WorkflowToolbar | Add stage, save workflow, reset layout, fit view, and other builder actions |
 | WorkflowStepList | Ordered list view/fallback panel for sequence review and reorder |
 | WorkflowEmptyState | First-use state prompting user to add the first stage |
+| workflowDefinitionMapper | Pure TypeScript helper that maps between EngageFlow JSONB workflow definition and React Flow nodes/edges/viewport |
+| workflowTypes | Shared TypeScript types for workflow definitions, nodes, edges, viewport, and save payloads |
 
 ### 8.4 Visual Builder Interaction Scope
 
@@ -788,6 +817,8 @@ In scope for v1 after Tasks exist:
 - Move/reposition stage nodes visually.
 - Save and reload viewport/layout metadata.
 - Preserve existing TaskWorkflowStep snapshots.
+- Keep add, remove, label, mandatory flag, order, and edge editing controls unavailable or read-only.
+- Reject any blocked structural save with a clear validation message if the client submits one.
 
 Not in scope for v1:
 
@@ -819,14 +850,14 @@ The same JSONB structure should be future-friendly enough for graph features lat
 Mandatory steps:
 
 - Count toward progress percentage.
-- Determine whether a Task is complete.
+- Determine whether a Task workflow is complete; a mandatory step counts as complete when its status is Completed or Not_Applicable.
 - Determine delayed status through the final mandatory step.
 
 Optional steps:
 
 - Appear in the Task timeline.
 - Do not count toward the main progress percentage.
-- Do not block Task completion when marked Not_Applicable.
+- Do not block Task completion.
 - Can still be completed when relevant.
 
 ### 8.7 Task Workflow Snapshot
@@ -835,7 +866,7 @@ When a Task is created:
 
 1. Read the ProjectWorkflow JSONB definition.
 2. Validate that it has at least one mandatory stage node.
-3. Create TaskWorkflowStep rows by copying node ID, label, mandatory flag, and order.
+3. Create TaskWorkflowStep rows for all workflow nodes, including Mandatory and Optional nodes, by copying node ID, label, mandatory flag, and order.
 4. Set all copied TaskWorkflowStep statuses to Pending.
 
 TaskWorkflowStep rows are the operational progress state used by dashboard and reporting. The JSONB definition is not mutated when Task progress changes.
@@ -845,6 +876,7 @@ TaskWorkflowStep rows are the operational progress state used by dashboard and r
 - Workflow definition can be edited freely before Tasks exist.
 - After Tasks exist, v1 allows layout-only changes such as node position and viewport/layout metadata.
 - After Tasks exist, v1 blocks structural workflow changes that would affect TaskWorkflowStep snapshots, including adding nodes, removing nodes, changing labels, changing mandatory flags, changing order, or changing edges.
+- After Tasks exist, structural controls should be disabled/read-only in the UI, and blocked structural saves must return a clear validation error.
 - A future workflow rebuild/migration feature may be designed later.
 
 ### 8.9 Future Workflow Extensibility
@@ -972,15 +1004,17 @@ Any step can move to any valid status. No strict linear progression is enforced 
 
 Active step selection:
 
-1. If one or more steps are In_Progress, use the In_Progress step with the highest `step_order`.
+1. If one or more steps are In_Progress, use the In_Progress step with the lowest `step_order`.
 2. If no step is In_Progress, use the first mandatory step that is not Completed and not Not_Applicable.
-3. If all mandatory steps are Completed, the Task is complete.
+3. If all mandatory steps are Completed or Not_Applicable and no step is In_Progress, show no active step and treat the Task workflow as complete for progress display.
 
 ### 11.3 Progress Percentage
 
 ```text
-progress = completed_mandatory_step_count / mandatory_step_count * 100
+progress = complete_mandatory_step_count / mandatory_step_count * 100
 ```
+
+`complete_mandatory_step_count` includes mandatory steps with status Completed or Not_Applicable.
 
 Optional steps are shown in the timeline but excluded from the main percentage.
 
@@ -990,7 +1024,10 @@ Optional steps are shown in the timeline but excluded from the main percentage.
 is_delayed = target_completion_date exists
            AND target_completion_date < today
            AND final mandatory step is not Completed
+           AND final mandatory step is not Not_Applicable
 ```
+
+The final mandatory step is the mandatory TaskWorkflowStep with the highest `step_order`.
 
 Delayed status is computed on read in v1.
 
@@ -1033,8 +1070,8 @@ Metrics:
 | Metric | Calculation |
 |---|---|
 | Total Tasks | Count Tasks in selected Project |
-| Completed Tasks | Count Tasks where final mandatory step is Completed |
-| In Progress Tasks | Count Tasks where final mandatory step is not Completed |
+| Completed Tasks | Count Tasks where final mandatory step is Completed or Not_Applicable |
+| In Progress Tasks | Count Tasks where final mandatory step is not Completed and not Not_Applicable |
 | Delayed Tasks | Count Tasks where delayed rule is true |
 | Overdue Follow-Ups | Count FollowUpActions where overdue rule is true |
 | Pending Deliverables | Count TaskDeliverables where status is Pending or In_Progress |
@@ -1091,14 +1128,16 @@ Recommended components:
 
 UI guardrails:
 
-- White-based layout.
-- Clean spacing.
-- MYDS-inspired typography and component discipline.
-- FontAwesome icons.
+- Use MYDS React and MYDS Style as the primary UI system.
+- Use MYDS design tokens for typography, colour, spacing, borders, focus states, and component states wherever available.
+- Use Tailwind CSS for layout composition around MYDS components, not as a replacement design system.
+- Keep screens white-based, clean, and work-focused.
+- Use icons only where they clarify actions or status. Prefer MYDS-supported icon patterns where available; otherwise use the existing FontAwesome dependency consistently.
+- Do not use Jata Negara or official government crest artwork in v1.
 - No dense enterprise-table-only interface for the main dashboard.
 - Visual Workflow Builder is a core v1 screen and should be designed early.
 - WorkflowCanvas must be a real design-time workflow surface, not just a styled form.
-- WorkflowCanvas must support a canvas-like experience in v1 while keeping logic limited to ordered stages.
+- WorkflowCanvas must use `@xyflow/react` / React Flow for the canvas-like experience in v1 while keeping EngageFlow workflow logic limited to ordered stages.
 - WorkflowCanvas must not be used as the Task status update screen.
 - Task status update belongs to Task screens, Task cards, or Task progress timelines.
 - When Tasks exist, the Workflow Builder should make structural fields read-only and allow layout-only edits.
@@ -1197,7 +1236,7 @@ Unit tests:
 - Workflow definition validation.
 - Workflow definition normalization.
 - Workflow structural change detection.
-- WorkflowCanvas state to JSONB definition mapping.
+- React Flow node/edge/viewport state to JSONB workflow definition mapping.
 - Workflow-to-task snapshot creation.
 - Progress percentage.
 - Active step selection.
@@ -1211,7 +1250,7 @@ Unit tests:
 Property-style tests:
 
 - Workflow definition validation across generated node/edge combinations.
-- WorkflowCanvas node/edge layout round-trip to JSONB.
+- React Flow node/edge/viewport layout round-trip to JSONB.
 - Month-end target conversion.
 - Delayed calculation across date/status combinations.
 - Overdue calculation across date/status combinations.
@@ -1254,19 +1293,29 @@ Do not seed global roles for v1.
 
 ## 18. CI and Quality
 
-CI should run on PRs and pushes to main.
+CI should run on PRs and pushes to main. CI should be staged by check type so failures are easy to diagnose and fast checks fail before slower checks run.
 
-Checks:
+CI stages:
 
-1. Composer install.
-2. Frontend install/build as required for Inertia asset manifest and WorkflowCanvas components.
-3. PostgreSQL database setup.
-4. Migrations.
-5. PestPHP tests.
-6. PHPStan.
-7. Laravel Pint.
+| Stage | Purpose | Required Checks |
+|---|---|---|
+| Stage 1: Install and Cache | Prepare dependencies | Composer install, npm install or npm ci, dependency caching |
+| Stage 2: Code Style | Fast formatting feedback | Laravel Pint check, frontend formatter/linter if configured |
+| Stage 3: Static Analysis | Catch type and framework issues | PHPStan/Larastan, TypeScript check if configured |
+| Stage 4: Backend Unit Tests | Fast business-rule tests without full HTTP/browser flow | Pest unit tests for actions, validators, mappers, progress rules, overdue rules, and workflow structural-change detection |
+| Stage 5: Database and Feature Tests | Verify Laravel behavior with persistence | PostgreSQL service, migrations, Pest feature tests for auth, policies, Project scoping, workflow save/load, Task creation, status updates, dashboard queries, Deliverables, Document Links, Follow-Ups, and AuditEntry |
+| Stage 6: Frontend Build and Contract Tests | Verify Inertia/React assets compile | `npm run build`, TypeScript compile if separate, React Flow import/build verification, frontend unit tests if configured |
+| Stage 7: Browser or Visual Smoke Tests | Optional confidence for complex pages | Playwright or equivalent smoke tests for high-risk flows such as login, Project dashboard, Workflow Builder, and Task detail when introduced |
+| Stage 8: Seed and Release Smoke | Verify demo/review environment can boot | `php artisan migrate:fresh --seed` in a CI-safe environment and a basic app boot check |
 
-PRs should not be merged if CI fails.
+Guardrails:
+
+- CI must use PostgreSQL, not MySQL.
+- Stages 1 through 6 should be required for normal application PRs once configured.
+- Stage 7 is optional early and should become required only for high-risk UI flows when the test suite is stable enough.
+- Stage 8 may run on main, release branches, or scheduled checks if it is too slow for every PR.
+- CI does not need browser tests in early MVP slices unless a page interaction becomes too risky for feature/unit tests alone.
+- PRs should not be merged if any required CI stage fails.
 
 ---
 
@@ -1280,9 +1329,9 @@ Required docs:
 | `docs/setup.md` | Container-first PostgreSQL setup |
 | `docs/project-structure.md` | Backend and frontend structure, including WorkflowBuilder and WorkflowCanvas components/actions |
 | `docs/workflow-status.md` | JSONB workflow definition, task snapshot, status, progress, delayed, overdue logic |
-| `docs/workflow-builder.md` | Visual Workflow Builder and WorkflowCanvas behaviour, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
+| `docs/workflow-builder.md` | Visual Workflow Builder and WorkflowCanvas behaviour, React Flow usage boundaries, JSONB layout, node/edge rules, validation, v1 limitations, and layout-only edits after Tasks exist |
 | `docs/deliverables.md` | Task Deliverables, types, statuses, overdue logic, and links |
-| `docs/testing.md` | Testing approach including visual workflow builder validation and WorkflowCanvas JSONB round-trip tests |
+| `docs/testing.md` | Testing approach including visual workflow builder validation and React Flow to JSONB round-trip tests |
 | `docs/ci.md` | CI checks |
 | `docs/user-guide.md` | User guide for Projects, Visual Workflows, Tasks, Deliverables, and Dashboard |
 | `docs/troubleshooting.md` | Common development issues |
@@ -1295,16 +1344,25 @@ README.md should link to the docs and include a quick start.
 
 Because the visual workflow builder and WorkflowCanvas are the core product experience, implementation should not postpone them until the end.
 
-Recommended early sequencing:
+Deliver the first product version as smaller approval-based MVP slices. Each slice should be usable enough for review before the next slice starts.
 
-1. PostgreSQL and base data model.
-2. Project ownership and ProjectWorkflow JSONB storage.
-3. Visual Workflow Builder shell and WorkflowCanvas save/load.
-4. Workflow definition validation, normalization, and structural change detection.
-5. WorkflowCanvas JSONB round-trip tests.
-6. Task creation from workflow snapshot.
-7. Task progress/dashboard.
-8. Deliverables, follow-ups, document links, and history.
+| Slice | Scope | Approval Output |
+|---|---|---|
+| MVP 0: Foundation | Laravel session auth, PostgreSQL setup, base authenticated layout, Project CRUD, owner-only policies, ProjectWorkflow creation | User can log in, create/select/update Projects, and cannot access another user's Project |
+| MVP 1: Workflow Builder Core | Visual Workflow Builder page, React Flow-backed WorkflowCanvas, add/edit/move/reorder stage nodes, Mandatory/Optional flags, simple edges, save/load JSONB, server-side workflow validation | User can visually build, save, and reopen a Project workflow |
+| MVP 2: Task Snapshot Loop | Create Task from valid workflow, copy all Mandatory and Optional workflow nodes into TaskWorkflowStep rows, Task detail screen, TaskProgressTimeline, Step_Status updates | Core loop works: Project -> Workflow -> Task -> Step progress |
+| MVP 3: Minimal Project Dashboard | Project-scoped metrics, Task list/cards, active step, mandatory-step progress percentage, delayed Task calculation, basic search and filters | User can assess Project progress without Deliverables or Follow-Ups |
+| MVP 4: Deliverables and Document Links | Task Deliverables, deliverable type/status/due date/remarks, overdue Deliverables, external Document Links for Tasks, Steps, and Deliverables | User can track expected Task outputs separately from workflow progress |
+| MVP 5: Follow-Ups and History | Follow-Up Actions, overdue Follow-Ups, AuditEntry records for status changes, HistoryTimeline | User can track operational follow-through and status-change history |
+
+Implementation sequence inside each slice:
+
+1. Add or update database structure.
+2. Add policies, requests, actions, and feature tests.
+3. Add Inertia pages and lego-style React components.
+4. Add focused unit tests for business rules and mapping logic.
+5. Seed enough sample data for review.
+6. Stop for approval before expanding into the next slice.
 
 Do not build a full automation engine while implementing the visual builder. V1 visual builder means visual ordered-stage workflow creation only.
 
