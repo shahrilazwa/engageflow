@@ -41,24 +41,8 @@ export default function Login() {
                     </div>
                 </header>
 
-                <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:min-h-[calc(100vh-116px)] lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center lg:px-8">
-                    <section className="hidden max-w-xl lg:block">
-                        <p className="text-sm font-semibold uppercase text-blue-700">EngageFlow</p>
-                        <h1 className="mt-3 text-3xl font-semibold leading-10 text-gray-950">
-                            Ruang kerja projek untuk pasukan yang memerlukan status kerja yang jelas.
-                        </h1>
-                        <p className="mt-4 max-w-lg text-base leading-7 text-gray-600">
-                            Log masuk untuk menyambung semakan tugasan, aliran kerja dan kemajuan projek.
-                        </p>
-                        <div className="mt-8 border-l-4 border-blue-600 bg-white px-5 py-4 shadow-sm">
-                            <p className="text-sm font-medium leading-5 text-gray-950">Akses terhad kepada pengguna berdaftar.</p>
-                            <p className="mt-1 text-sm leading-6 text-gray-600">
-                                Hubungi pentadbir projek jika akaun anda belum disediakan.
-                            </p>
-                        </div>
-                    </section>
-
-                    <section className="flex justify-center lg:justify-end">
+                <main className="mx-auto flex w-full max-w-6xl justify-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+                    <section className="flex w-full justify-center">
                         <AuthCard>
                             <div className="mb-6">
                                 <p className="text-sm font-medium leading-5 text-blue-700">EngageFlow</p>
