@@ -1,19 +1,26 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGlobe } from '@fortawesome/free-solid-svg-icons';
+import type { FormEvent } from 'react';
 import AppBrand from '@/Components/AppBrand';
 import AuthCard from '@/Components/AuthCard';
 import GovMasthead from '@/Components/GovMasthead';
 import InputError from '@/Components/InputError';
 
+type LoginForm = {
+    email: string;
+    password: string;
+    remember: boolean;
+};
+
 export default function Login() {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm<LoginForm>({
         email: '',
         password: '',
         remember: false,
     });
 
-    function handleSubmit(event) {
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         post('/login', { preserveScroll: true });
     }
@@ -70,7 +77,7 @@ export default function Login() {
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div>
                                         <label htmlFor="email" className="mb-1.5 block text-sm font-medium leading-5 text-gray-700">
-                                            Nama pengguna
+                                            E-mel
                                         </label>
                                         <input
                                             id="email"
@@ -79,7 +86,7 @@ export default function Login() {
                                             value={data.email}
                                             onChange={(event) => setData('email', event.target.value)}
                                             className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm leading-5 text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                            placeholder="Masukkan nama pengguna"
+                                            placeholder="Masukkan e-mel"
                                             required
                                         />
                                         <InputError message={errors.email} />

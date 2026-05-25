@@ -11,6 +11,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.jsx';
+@source '../**/*.tsx';
 
 /* MYDS/go.miniapp typography approximation */
 :root {
