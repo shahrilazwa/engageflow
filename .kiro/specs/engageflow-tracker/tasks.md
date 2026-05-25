@@ -87,24 +87,24 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
 
 ---
 
-- [ ] 3. Create documentation skeleton
+- [x] 3. Create documentation skeleton
   - MVP slice: MVP 0 Foundation
   - Labels: documentation, setup
   - Depends on: Task 1
   - Description: Create early documentation files so implementation details can be filled incrementally per MVP slice.
   - Linked requirement/design: Design 19
   - Acceptance checklist:
-    - [ ] `docs/architecture.md` exists
-    - [ ] `docs/setup.md` exists
-    - [ ] `docs/project-structure.md` exists
-    - [ ] `docs/workflow-status.md` exists
-    - [ ] `docs/workflow-builder.md` exists
-    - [ ] `docs/deliverables.md` exists
-    - [ ] `docs/testing.md` exists
-    - [ ] `docs/ci.md` exists
-    - [ ] `docs/user-guide.md` exists
-    - [ ] `docs/troubleshooting.md` exists
-    - [ ] README links to the docs
+    - [x] `docs/architecture.md` exists
+    - [x] `docs/setup.md` exists
+    - [x] `docs/project-structure.md` exists
+    - [x] `docs/workflow-status.md` exists
+    - [x] `docs/workflow-builder.md` exists
+    - [x] `docs/deliverables.md` exists
+    - [x] `docs/testing.md` exists
+    - [x] `docs/ci.md` exists
+    - [x] `docs/user-guide.md` exists
+    - [x] `docs/troubleshooting.md` exists
+    - [x] README links to the docs
   - Test expectation: No automated tests.
   - UI/design review checkpoint: Not required; this task has no page deliverable.
 

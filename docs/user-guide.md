@@ -1,133 +1,114 @@
 # User Guide
 
-> **Status:** Skeleton — detailed content will be written once the application screens are implemented.
-
-This guide is for engagement officers using EngageFlow to track ministry/agency service onboarding progress.
+This guide is a skeleton for people using EngageFlow. It will be expanded with screenshots and step-by-step instructions as screens are implemented.
 
 ---
 
 ## Getting Started
 
-EngageFlow is a web application. Open your browser and navigate to the URL provided by your administrator.
+Open EngageFlow in a browser and log in with your email address and password.
 
-Log in with your email address and password. Contact your Admin if you do not have an account.
-
----
-
-## Roles
-
-| Role | What you can do |
-|---|---|
-| **Admin** | Manage users and roles, plus everything below |
-| **Engagement Lead** | Create and update agency owners, services, follow-up actions, special projects |
-| **Engagement Officer** | Create and update agency owners, services, follow-up actions, special projects |
+V1 uses Laravel session authentication. It does not include registration, OIDC, SSO, or external identity providers.
 
 ---
 
-## Agency Owners
+## Projects
 
-### How to register an agency owner
+Projects are the top-level workspace in EngageFlow.
 
-> _Detailed steps will be added once the Agency Owner screens are implemented._
+In v1, each Project is owned by one user. Only the owner can view or manage that Project.
 
-An agency owner is a ministry or government agency that owns one or more digital services being onboarded into MyGOV.
+Project screens will cover:
 
----
-
-## Services
-
-### How to register a service
-
-> _Detailed steps will be added once the Service screens are implemented._
-
-A service is a digital service owned by an agency that GovTech wants to make available through MyGOV.
-
-### How to set a target completion date
-
-> _Detailed steps will be added once the Service screens are implemented._
-
-If you only know the target month, select the month and the system will use the last day of that month as the target date.
+- Project list
+- Project creation
+- Project editing
+- Project selection
+- Project dashboard entry point
 
 ---
 
-## Workflow Stages
+## Workflow Builder
 
-### How to update a workflow stage status
+Each Project has one visual workflow definition.
 
-> _Detailed steps will be added once the Workflow Stage screens are implemented._
+The Workflow Builder is used to design ordered workflow stages. It is not used to update Task progress.
 
-Stages can be updated in any order. Available statuses: Pending, In Progress, Completed, KIV, Not Applicable, Blocked, To Be Confirmed.
+Workflow Builder screens will cover:
 
-### How to read the graphical progress view
-
-> _Detailed steps will be added once the Dashboard is implemented._
-
-Each service shows a horizontal timeline of its 10 workflow stages. Each stage is colour-coded by status.
-
----
-
-## Delayed Services
-
-### How to identify delayed services
-
-> _Detailed steps will be added once the Dashboard is implemented._
-
-A service is marked as delayed when its target completion date has passed and it has not reached Go-Live. Delayed services show a red badge on the dashboard.
+- Adding stages
+- Reordering or reviewing stages
+- Marking stages Mandatory or Optional
+- Saving and reopening the workflow
+- Understanding locked workflow state after Tasks exist
 
 ---
 
-## Follow-Up Actions
+## Tasks
 
-### How to create a follow-up action
+Tasks are created within a selected Project.
 
-> _Detailed steps will be added once the Follow-Up Action screens are implemented._
+When a Task is created, EngageFlow copies the current Project workflow into TaskWorkflowStep rows. This snapshot lets existing Tasks keep their original steps even if the Project workflow changes later.
 
-### How to identify overdue follow-up actions
+Task screens will cover:
 
-> _Detailed steps will be added once the Dashboard is implemented._
+- Task list
+- Task creation
+- Task detail
+- Progress timeline
+- Step status updates
+- Delayed status
 
-A follow-up action is overdue when its due date has passed and its status is not Done or Cancelled. Overdue actions are highlighted on the dashboard.
+---
+
+## Deliverables
+
+Deliverables track expected Task outputs separately from workflow progress.
+
+Deliverable screens will cover:
+
+- Creating Deliverables
+- Updating Deliverable details
+- Updating Deliverable status
+- Viewing overdue Deliverables
 
 ---
 
 ## Document Links
 
-### How to add a document link
+Document Links store external URLs attached to supported entities.
 
-> _Detailed steps will be added once the Document Link screens are implemented._
-
-Document links are external URLs (e.g. Google Drive links). The system stores the link and label only — no files are uploaded.
+V1 stores links only. It does not upload files and does not integrate with Google Drive, Figma, GitHub, or external repositories.
 
 ---
 
-## Search and Filters
+## Follow-Up Actions
 
-### How to use search and filters
+Follow-Up Actions track operational follow-through for a Task.
 
-> _Detailed steps will be added once the Dashboard search and filter is implemented._
+Follow-Up screens will cover:
 
-Use the search bar to find services by name or agency owner name. Use the filter panel to filter by agency owner, stage status, or delayed status.
-
----
-
-## Special Projects
-
-### How to view special projects
-
-> _Detailed steps will be added once the Special Project screens are implemented._
-
-Special projects appear in a dedicated section on the dashboard. They do not use the standard 10-stage workflow.
+- Creating Follow-Up Actions
+- Updating status and remarks
+- Identifying overdue Follow-Ups
 
 ---
 
-## History and Audit
+## Dashboard
 
-### How to view history and audit updates
+The Project dashboard shows progress and attention-needed work within one selected Project.
 
-> _Detailed steps will be added once the Audit History screens are implemented._
+Dashboard screens will cover:
 
-Each service and follow-up action has a history section showing all status changes, who made them, and when.
+- Total Tasks
+- Completed Tasks
+- In-progress Tasks
+- Delayed Tasks
+- Task search and filters
+- Deliverable and Follow-Up summaries in later MVP slices
 
 ---
 
-> This guide will be completed with screenshots and step-by-step instructions once the application screens are built.
+## History
+
+History will show status changes for TaskWorkflowSteps, Deliverables, and Follow-Up Actions after audit support is implemented.
