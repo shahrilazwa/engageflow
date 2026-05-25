@@ -20,7 +20,7 @@ If Docker is not running, start Docker Desktop and try again.
 
 ---
 
-### Port 8000 or 3306 already in use
+### Port 8000, 5173, or 5432 already in use
 
 Another process is using the port. Find and stop it, or change the port mapping in `docker-compose.yml`.
 
@@ -112,7 +112,15 @@ docker compose exec app php artisan migrate
 
 ### `npm run build` fails
 
-> _Frontend build is not yet configured. This section will be updated when Inertia + React setup is complete._
+Run npm commands inside the `node` container:
+
+```bash
+docker compose run --rm node npm ci
+docker compose exec node npm run typecheck
+docker compose exec node npm run build
+```
+
+The `node_modules` directory is stored in a Docker named volume. Do not install npm packages on the host machine.
 
 ---
 
@@ -138,7 +146,7 @@ docker compose exec app tail -50 /var/www/html/storage/logs/laravel.log
 Common `.env` issues:
 - `APP_KEY` is empty — run `docker compose run --rm app php artisan key:generate`
 - `DB_HOST` is not `db` — it must match the Docker Compose service name
-- `DB_PASSWORD` does not match `MYSQL_PASSWORD` in `docker-compose.yml`
+- `DB_PASSWORD` does not match `POSTGRES_PASSWORD` in `docker-compose.yml`
 
 ---
 

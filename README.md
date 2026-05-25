@@ -1,12 +1,12 @@
 # EngageFlow
 
-EngageFlow is an internal GovTech Malaysia engagement tracker for monitoring the progress and status of ministry/agency-owned digital services being onboarded into MyGOV.
+EngageFlow is a Laravel + Inertia React application for visually designing Project workflows and tracking work against those workflows.
 
-The project is planned as a Laravel modular monolith with an Inertia.js + React frontend, MYDS as the primary design system where practical, FontAwesome icons, MySQL, Docker Compose, automated tests, and GitHub Actions CI.
+The project is planned as a Laravel modular monolith with an Inertia.js + React + TypeScript frontend, MYDS as the primary design system, React Flow for visual workflow building, PostgreSQL JSONB workflow storage, Docker Compose, automated tests, and GitHub Actions CI.
 
 ## Quick Start
 
-> **Host machine requirements:** Docker Desktop and Git only. PHP, Composer, and Node do not need to be installed locally.
+> **Host machine requirements:** Docker Desktop and Git only. PHP, Composer, Node, npm, and PostgreSQL do not need to be installed locally.
 
 ```bash
 # 1. Clone the repository
@@ -22,26 +22,26 @@ docker compose up -d db
 # 4. Generate APP_KEY — this writes the key into .env on the host
 docker compose run --rm app php artisan key:generate
 
-# 5. Start all services (force-recreate app so it picks up the new APP_KEY)
+# 5. Install frontend dependencies inside the node container
+docker compose run --rm node npm ci
+
+# 6. Start all services (force-recreate app so it picks up the new APP_KEY)
 docker compose up -d --force-recreate app node
 
-# 6. Run database migrations
+# 7. Run database migrations
 docker compose exec app php artisan migrate
 
-# 7. Open the app
+# 8. Open the app
 # http://localhost:8000
 ```
 
-> **Why the force-recreate step?**
-> `APP_KEY` is passed into the `app` container as an environment variable at startup.
-> If you generate the key after the container is already running, the container will not see the new value until it is recreated.
-> Running `docker compose up -d --force-recreate app` restarts only the app container with the updated key.
+`APP_KEY` is read by Laravel from the mounted `.env` file. Generate it before opening the app in the browser.
 
 
 
 ## Current Status
 
-Task 1 (Docker Compose setup) and Task 2 (GitHub Actions CI) are complete and merged into `main`. Implementation continues task by task following `tasks.md`.
+MVP 0 implementation is in progress. Implementation continues task by task following `.kiro/specs/engageflow-tracker/tasks.md`.
 
 ## Development Workflow
 
@@ -79,9 +79,19 @@ Closes #5
 
 The GitHub Actions CI pipeline runs on every pull request. It checks:
 
-- `php artisan test` — automated test suite
-- `vendor/bin/phpstan analyse` — static analysis at level 5
-- `vendor/bin/pint --test` — code style
+- `vendor/bin/pint --test` - code style
+- `vendor/bin/phpstan analyse` - static analysis at level 5
+- `php artisan test` - automated test suite
+- `npm run typecheck` - TypeScript contract check
+- `npm run build` - frontend asset build
+
+Local verification runs the same checks inside Docker Compose:
+
+- `docker compose exec app vendor/bin/pint --test`
+- `docker compose exec app vendor/bin/phpstan analyse`
+- `docker compose exec app php artisan test`
+- `docker compose exec node npm run typecheck`
+- `docker compose exec node npm run build`
 
 **PRs cannot be merged if any CI check fails.**
 
@@ -119,17 +129,12 @@ Issues are grouped into milestones by delivery phase:
 
 | Milestone | Scope |
 |---|---|
-| `v1 Foundation` | Project setup, Docker, CI, auth, base structure |
-| `v1 Core Tracking` | Agency owners, services, workflow stages |
-| `v1 Workflow Tracking` | Stage status, active stage, delayed flag, progress % |
-| `v1 Dashboard and Graphical Progress` | Dashboard UI, workflow timeline, summary cards |
-| `v1 Follow-Up and Document Links` | Follow-up actions, document links |
-| `v1 Special Projects` | Special project tracking |
-| `v1 Audit and History` | Audit trail, history views |
-| `v1 Search and Filter` | Search and filter on dashboard |
-| `v1 Documentation` | All docs/ files |
-| `v1 Testing and Quality` | Property-style tests, PHPStan, Pint pass |
-| `v1 Polish and Review` | Seeder review, issue hygiene, final checks |
+| `MVP 0 Foundation` | Auth, PostgreSQL, app shell, Project CRUD, owner-only policies |
+| `MVP 1 Workflow Builder Core` | React Flow-backed visual workflow builder and JSONB save/load |
+| `MVP 2 Task Snapshot Loop` | Task creation from workflow snapshots and step progress |
+| `MVP 3 Minimal Project Dashboard` | Project-scoped dashboard, progress, delayed status, search/filter basics |
+| `MVP 4 Deliverables and Document Links` | Expected outputs and external links |
+| `MVP 5 Follow-Ups and History` | Follow-up actions, overdue items, audit history |
 
 ### Project Board
 
@@ -202,11 +207,12 @@ Configure in **GitHub → Settings → Branches → Add branch ruleset** for `ma
 
 - PHP 8.4 minimum
 - Laravel latest stable compatible with PHP 8.4
-- Inertia.js + React
+- Inertia.js + React + TypeScript
 - Tailwind CSS
-- MYDS where practical
+- MYDS as the primary UI system
 - FontAwesome icons
-- MySQL 8
+- PostgreSQL
+- React Flow / `@xyflow/react`
 - PestPHP
 - GitHub Actions CI
 - Docker Compose container-first local development
@@ -222,6 +228,6 @@ Project documentation lives in the `docs/` directory.
 | [docs/project-structure.md](docs/project-structure.md) | Directory layout, module structure, frontend structure, MYDS/Tailwind/FontAwesome guidance |
 | [docs/workflow-status.md](docs/workflow-status.md) | Engagement workflow stages, stage statuses, progress calculation, delayed flag, overdue follow-up logic |
 | [docs/testing.md](docs/testing.md) | How to run tests, PHPStan, Pint; test organisation; property-style tests |
-| [docs/ci.md](docs/ci.md) | GitHub Actions CI pipeline steps, MySQL service, branch strategy, branch protection |
+| [docs/ci.md](docs/ci.md) | GitHub Actions CI pipeline steps, PostgreSQL service, branch strategy, branch protection |
 | [docs/user-guide.md](docs/user-guide.md) | User guide for engagement officers |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common Docker, Composer, migration, and permission issues |

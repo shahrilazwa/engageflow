@@ -43,21 +43,21 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
 
 ---
 
-- [ ] 1. Align project stack and development baseline
+- [x] 1. Align project stack and development baseline
   - MVP slice: MVP 0 Foundation
   - Labels: setup, backend, frontend
   - Depends on: none
   - Description: Align the application baseline with the agreed stack. Configure Laravel, Inertia React, TypeScript, PostgreSQL, MYDS, Tailwind, FontAwesome or MYDS-compatible icons, React Flow, PestPHP, PHPStan/Larastan, and Pint. Existing legacy MySQL or old requirement artifacts may be updated in a later implementation pass, but the target stack for new work is PostgreSQL and TypeScript.
   - Linked requirement/design: Requirement 18; Design 2.1; Design 5.2; Design 13
   - Acceptance checklist:
-    - [ ] New React/Inertia code can be written in `.tsx`
-    - [ ] `@xyflow/react` is installed and importable
-    - [ ] MYDS React and MYDS Style are installed and importable
-    - [ ] Tailwind is available for layout composition
-    - [ ] PostgreSQL connection is configured for local and test environments
-    - [ ] PHPStan/Larastan and Pint commands are documented
-    - [ ] `npm run build` succeeds
-    - [ ] `php artisan test` succeeds
+    - [x] New React/Inertia code can be written in `.tsx`
+    - [x] `@xyflow/react` is installed and importable
+    - [x] MYDS React and MYDS Style are installed and importable
+    - [x] Tailwind is available for layout composition
+    - [x] PostgreSQL connection is configured for local and test environments
+    - [x] PHPStan/Larastan and Pint commands are documented
+    - [x] `npm run build` succeeds
+    - [x] `php artisan test` succeeds
   - Test expectation: Smoke test build and test commands.
   - UI/design review checkpoint: Not required; this task has no page deliverable.
 
