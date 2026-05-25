@@ -1,7 +1,11 @@
-export default function InputError({ message }) {
+export default function InputError({ message, ...props }) {
     if (!message) {
         return null;
     }
 
-    return <p className="mt-2 text-sm font-medium text-red-600">{message}</p>;
+    return (
+        <p {...props} className="mt-2 text-sm font-medium text-red-600">
+            {message}
+        </p>
+    );
 }
