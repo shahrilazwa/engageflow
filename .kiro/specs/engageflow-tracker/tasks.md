@@ -132,23 +132,23 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
 
 ---
 
-- [ ] 5. Build authenticated app shell and navigation
+- [x] 5. Build authenticated app shell and navigation
   - MVP slice: MVP 0 Foundation
   - Labels: feature, frontend, design
   - Depends on: Task 4
   - Description: Build the shared authenticated layout using MYDS components and Tailwind layout composition. Keep it quiet, work-focused, and suitable for repeated operational use.
   - Linked requirement/design: Design 5.2; Design 13
   - Acceptance checklist:
-    - [ ] `AuthenticatedLayout.tsx` exists
-    - [ ] Layout includes app name, authenticated user area, logout control, and primary navigation
-    - [ ] Navigation includes Projects and selected Project Dashboard when available
-    - [ ] Layout supports desktop and mobile widths
-    - [ ] Layout uses MYDS components where available
-    - [ ] Layout does not include global role-management navigation
+    - [x] `AuthenticatedLayout.tsx` exists
+    - [x] Layout includes app name, authenticated user area, logout control, and primary navigation
+    - [x] Navigation includes Projects and selected Project Dashboard when available
+    - [x] Layout supports desktop and mobile widths
+    - [x] Layout uses MYDS components where available
+    - [x] Layout does not include global role-management navigation
   - Test expectation: Feature or rendering smoke test for authenticated dashboard response.
   - UI/design review checkpoint:
-    - [ ] Review shell spacing, navigation hierarchy, active state, mobile behavior, and MYDS alignment
-    - [ ] Confirm page content has enough width for dense app screens without feeling like a marketing page
+    - [x] Review shell spacing, navigation hierarchy, active state, mobile behavior, and MYDS alignment
+    - [x] Confirm page content has enough width for dense app screens without feeling like a marketing page
 
 ---
 
