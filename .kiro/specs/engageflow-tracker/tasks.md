@@ -63,25 +63,25 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
 
 ---
 
-- [ ] 2. Configure staged CI and pull request quality gates
+- [x] 2. Configure staged CI and pull request quality gates
   - MVP slice: MVP 0 Foundation
   - Labels: ci, setup
   - Depends on: Task 1
   - Description: Configure GitHub Actions in stages by check type so fast checks fail early and failures are easy to diagnose.
   - Linked requirement/design: Design 18; Design 21
   - Acceptance checklist:
-    - [ ] CI workflow exists under `.github/workflows`
-    - [ ] Stage 1 installs and caches Composer and npm dependencies
-    - [ ] Stage 2 runs Laravel Pint and frontend formatter/linter if configured
-    - [ ] Stage 3 runs PHPStan/Larastan and TypeScript check if configured
-    - [ ] Stage 4 runs backend unit tests
-    - [ ] Stage 5 starts PostgreSQL, runs migrations, and runs database-backed Pest feature tests
-    - [ ] Stage 6 runs frontend build and React/Inertia/React Flow contract checks
-    - [ ] Stage 7 is documented as optional browser or visual smoke tests for high-risk UI flows
-    - [ ] Stage 8 is documented as seed and release smoke checks for main, release branches, or scheduled runs
-    - [ ] The PR template states which CI stages are required for the current PR
-    - [ ] Pull request template includes UI/design review checkbox for page changes
-    - [ ] CI uses PostgreSQL, not MySQL
+    - [x] CI workflow exists under `.github/workflows`
+    - [x] Stage 1 installs and caches Composer and npm dependencies
+    - [x] Stage 2 runs Laravel Pint and frontend formatter/linter if configured
+    - [x] Stage 3 runs PHPStan/Larastan and TypeScript check if configured
+    - [x] Stage 4 runs backend unit tests
+    - [x] Stage 5 starts PostgreSQL, runs migrations, and runs database-backed Pest feature tests
+    - [x] Stage 6 runs frontend build and React/Inertia/React Flow contract checks
+    - [x] Stage 7 is documented as optional browser or visual smoke tests for high-risk UI flows
+    - [x] Stage 8 is documented as seed and release smoke checks for main, release branches, or scheduled runs
+    - [x] The PR template states which CI stages are required for the current PR
+    - [x] Pull request template includes UI/design review checkbox for page changes
+    - [x] CI uses PostgreSQL, not MySQL
   - Test expectation: Open a test PR and confirm required CI stages run in the intended order.
   - UI/design review checkpoint: Not required; this task has no page deliverable.
 

@@ -1,82 +1,78 @@
 # CI Guide
 
-> **Status:** Skeleton — detailed content will be expanded as implementation progresses.
-
 This document explains the GitHub Actions CI pipeline for EngageFlow.
 
 ---
 
 ## Overview
 
-CI runs automatically on every pull request and on every push to `main`. **PRs cannot be merged if any CI check fails.**
+CI runs automatically on every pull request and on every push to `main`. PRs should not be merged if required CI checks fail.
 
-The workflow file is at `.github/workflows/ci.yml`.
+The workflow file is `.github/workflows/ci.yml`.
 
 ---
 
-## CI Pipeline Stages
+## Required Pipeline Stages
 
-| Stage | Purpose |
-|---|---|
-| Stage 1 - Install and cache | Install Composer and npm dependencies |
-| Stage 2 - Code style | Run Laravel Pint |
-| Stage 3 - Static analysis | Run PHPStan/Larastan and TypeScript checks |
-| Stage 4 - Backend unit tests | Run Pest unit tests |
-| Stage 5 - Database and feature tests | Run PostgreSQL migrations and Pest feature tests |
-| Stage 6 - Frontend build and contracts | Run TypeScript and Vite build |
+| Stage | Job name | Purpose |
+|---|---|---|
+| Stage 1 | Install and cache | Check out the repository, set up PHP and Node, cache Composer/npm package downloads, and install dependencies |
+| Stage 2 | Code style | Run Laravel Pint; frontend formatter or linter can be added here once configured |
+| Stage 3 | Static analysis | Run PHPStan/Larastan and TypeScript checks |
+| Stage 4 | Backend unit tests | Run the Pest unit test suite |
+| Stage 5 | Database and feature tests | Start PostgreSQL, run migrations, and run database-backed Pest feature tests |
+| Stage 6 | Frontend build and contracts | Run TypeScript checks and Vite production build for Inertia/React/React Flow contracts |
+
+Stages 1-6 are required for normal pull requests.
+
+---
+
+## Optional Future Stages
+
+| Stage | Trigger | Purpose |
+|---|---|---|
+| Stage 7 - Browser or visual smoke tests | High-risk user-facing page changes | Run browser smoke tests, screenshots, or visual checks for critical flows |
+| Stage 8 - Seed and release smoke checks | `main`, release branches, or scheduled runs | Run seeders and release-oriented smoke checks against production-like setup |
+
+Stage 7 and Stage 8 are documented now but not enabled yet. Add them only when the corresponding tools and review workflow exist.
 
 ---
 
 ## PostgreSQL Service Container
 
-CI uses a PostgreSQL service container for the migration and feature-test stage. The service is configured with a health check so the migration step waits until PostgreSQL is ready.
+Stage 5 uses a PostgreSQL 17 service container. The service is configured with a health check so migrations and feature tests run only after PostgreSQL is ready.
 
-Unit tests should stay fast and avoid database work where practical. Feature tests use the PostgreSQL service when persistence behavior matters.
+Feature tests use PostgreSQL for database-backed behavior. Unit tests should avoid database work where practical.
 
 ---
 
 ## CI Environment File
 
-The `.env.ci` file is committed to the repository and used by CI instead of `.env`. It contains:
+`.env.ci` is committed to the repository and copied to `.env` in test jobs. It contains:
+
 - PostgreSQL connection details matching the GitHub Actions service container
 - `APP_ENV=testing`
-- Array drivers for session, cache, and mail (no external services needed)
+- Array drivers for session, cache, and mail
+- No external service requirements
 
 ---
 
-## PHPStan Configuration
+## Pull Request Expectations
 
-PHPStan is configured in `phpstan.neon`:
-- Level 5 (practical for early development — can be raised later)
-- Uses `nunomaduro/larastan` extension for Laravel-aware type inference
-- Analyses the `app/` directory
+The pull request template requires authors to state which CI stages apply to the PR. For most implementation PRs, Stages 1-6 apply.
 
----
-
-## Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Production-ready code |
-| `feature/task-N-*` | Feature implementation |
-| `fix/*` | Bug fixes |
-
-PRs require at least one reviewer approval before merge.
+For user-facing page changes, the PR template also requires a UI/design review checklist covering MYDS alignment, responsive behavior, state coverage, and confirmation that no Jata Negara or official crest artwork appears.
 
 ---
 
-## Branch Protection for `main`
+## Branch Protection
 
-The following branch protection rules should be configured in GitHub Settings:
+Configure the `main` branch ruleset in GitHub Settings:
 
-- Require pull request before merging
-- Require CI status checks to pass
-- Require branch to be up to date before merging
+- Require a pull request before merging
+- Require branches to be up to date before merging
+- Require required GitHub Actions status checks to pass
 - Require conversation resolution before merging
 - Do not allow direct commits to `main`
 
-See [docs/setup.md](setup.md) for the full setup guide.
-
----
-
-> This document will be expanded with troubleshooting tips for common CI failures during implementation.
+Avoid making third-party app checks required unless the team intentionally depends on that app for every PR.

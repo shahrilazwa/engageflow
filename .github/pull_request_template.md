@@ -24,6 +24,19 @@ Describe how this was tested or verified:
 - [ ] `docker compose exec node npm run build` passes
 - [ ] Manual smoke test performed, if applicable
 
+## CI Stages
+
+Confirm which CI stages are required for this PR:
+
+- [ ] Stage 1 - Install and cache
+- [ ] Stage 2 - Code style
+- [ ] Stage 3 - Static analysis
+- [ ] Stage 4 - Backend unit tests
+- [ ] Stage 5 - Database and feature tests
+- [ ] Stage 6 - Frontend build and contracts
+- [ ] Stage 7 - Optional browser/visual smoke tests, not required for this PR
+- [ ] Stage 8 - Optional seed/release smoke checks, not required for this PR
+
 ## UI / Design Review
 
 Complete this section for PRs that create or change user-facing pages:
