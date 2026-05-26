@@ -183,8 +183,8 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
         },
         {
             label: 'Projects',
+            href: '/projects',
             active: url.startsWith('/projects'),
-            disabled: true,
             icon: faFolderOpen,
         },
     ];

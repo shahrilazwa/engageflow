@@ -3,21 +3,8 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Testing\TestResponse;
 
 uses(RefreshDatabase::class);
-
-// Helper: make a POST request with a valid CSRF token in the session.
-// In Laravel 13, the test client does not automatically bypass CSRF.
-// We seed the session with a known token and include it in the request.
-function postWithCsrf(string $url, array $data = []): TestResponse
-{
-    $token = 'test-csrf-token';
-
-    return test()
-        ->withSession(['_token' => $token])
-        ->post($url, array_merge($data, ['_token' => $token]));
-}
 
 test('login page renders as an Inertia component', function () {
     $response = $this->get('/login');

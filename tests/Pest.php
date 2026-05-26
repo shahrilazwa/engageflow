@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /*
@@ -33,3 +34,28 @@ pest()->extend(TestCase::class)->in('Unit');
 | file. Here you can also expose helpers as global functions to help you
 | to reduce the number of lines of code in your test files.
 */
+
+/**
+ * Make a POST request with a valid CSRF token in the session.
+ * In Laravel 13, the test client does not automatically bypass CSRF.
+ */
+function postWithCsrf(string $url, array $data = []): TestResponse
+{
+    $token = 'test-csrf-token';
+
+    return test()
+        ->withSession(['_token' => $token])
+        ->post($url, array_merge($data, ['_token' => $token]));
+}
+
+/**
+ * Make a PUT request with a valid CSRF token in the session.
+ */
+function putWithCsrf(string $url, array $data = []): TestResponse
+{
+    $token = 'test-csrf-token';
+
+    return test()
+        ->withSession(['_token' => $token])
+        ->put($url, array_merge($data, ['_token' => $token]));
+}
