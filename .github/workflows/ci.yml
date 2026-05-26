@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ─── Stage 1: Install and cache dependencies ─────────────────────────────────
   install:
     name: Stage 1 - Install and cache
     runs-on: ubuntu-latest
@@ -40,36 +41,9 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-  code-style:
-    name: Stage 2 - Code style
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
-          coverage: none
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.composer/cache
-          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Run Laravel Pint
-        run: vendor/bin/pint --test
-
-  static-analysis:
-    name: Stage 3 - Static analysis
+  # ─── Stage 2: Fast lint checks (fail early) ──────────────────────────────────
+  lint:
+    name: Stage 2 - Lint (Pint + TypeScript)
     runs-on: ubuntu-latest
     needs: install
     steps:
@@ -102,16 +76,46 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Run Laravel Pint
+        run: vendor/bin/pint --test
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+  # ─── Stage 3: Static analysis (only if lint passes) ──────────────────────────
+  static-analysis:
+    name: Stage 3 - Static analysis (PHPStan)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_pgsql, bcmath, gd, zip, pcntl, exif
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
-      - name: Run TypeScript
-        run: npm run typecheck
-
+  # ─── Stage 4: Unit tests (only if lint passes) ───────────────────────────────
   unit-tests:
     name: Stage 4 - Backend unit tests
     runs-on: ubuntu-latest
-    needs: install
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -142,10 +146,11 @@ jobs:
       - name: Run unit tests
         run: php artisan test --testsuite=Unit --no-coverage
 
+  # ─── Stage 5: Feature tests with DB (only if unit tests pass) ────────────────
   feature-tests:
     name: Stage 5 - Database and feature tests
     runs-on: ubuntu-latest
-    needs: install
+    needs: unit-tests
     services:
       postgres:
         image: postgres:17-alpine
@@ -178,8 +183,20 @@ jobs:
           key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: composer-${{ runner.os }}-
 
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
 
       - name: Copy CI environment
         run: cp .env.ci .env
@@ -193,10 +210,11 @@ jobs:
       - name: Run feature tests
         run: php artisan test --testsuite=Feature --no-coverage
 
+  # ─── Stage 6: Frontend build (only if lint passes) ───────────────────────────
   frontend-build:
-    name: Stage 6 - Frontend build and contracts
+    name: Stage 6 - Frontend build
     runs-on: ubuntu-latest
-    needs: install
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -209,9 +227,6 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
-
-      - name: Run TypeScript
-        run: npm run typecheck
 
       - name: Build frontend assets
         run: npm run build
