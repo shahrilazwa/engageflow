@@ -128,10 +128,14 @@ Copy `.env.example` to `.env` and review the values.
 
 ## Seeded Demo Data
 
-Seeders will be added in a later task. Once seeders are implemented, run:
+A test user is seeded by default. Run:
 
 ```bash
 docker compose exec app php artisan migrate:fresh --seed
 ```
 
-This will create sample Projects, workflows, Tasks, deliverables, follow-up actions, document links, and history so you can explore the dashboard immediately.
+**Test user credentials:**
+- Email: `test@example.com`
+- Password: `password`
+
+This creates a local user you can log in with immediately. Additional seeders for Projects, workflows, Tasks, deliverables, and follow-up actions will be added in later MVP slices.

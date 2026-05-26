@@ -51,19 +51,24 @@ engageflow/
 
 Use Laravel conventions first. Add feature-specific action classes only when they keep controllers thin and business rules testable.
 
-Expected v1 model areas:
+Current v1 models:
 
-- `User`
-- `Project`
-- `ProjectWorkflow`
-- `Task`
-- `TaskWorkflowStep`
-- `TaskDeliverable`
-- `DocumentLink`
-- `FollowUpAction`
-- `AuditEntry`
+| Model | Table | Purpose |
+|---|---|---|
+| `User` | `users` | Authenticated user, Project owner |
+| `Project` | `projects` | Owner-scoped workspace with soft-delete and archive status |
+| `ProjectWorkflow` | `project_workflows` | One JSONB workflow definition per Project (auto-created) |
 
-Authorization is policy-based. Project access is owner-only in v1.
+Upcoming models (MVP 1+):
+
+- `Task` — tracked work item inside a Project
+- `TaskWorkflowStep` — relational progress snapshot per Task
+- `TaskDeliverable` — expected Task output
+- `DocumentLink` — external URL attached to supported entities
+- `FollowUpAction` — operational action tracking
+- `AuditEntry` — status-change history
+
+Authorization is policy-based. `ProjectPolicy` enforces owner-only access. Inaccessible records return 404.
 
 ---
 

@@ -8,6 +8,8 @@ This document describes the current target architecture for EngageFlow.
 
 EngageFlow is a Laravel modular monolith with an Inertia React frontend. The v1 product is Project-first, workflow-first, visual-builder-first, and single-user-first. There are no microservices in v1.
 
+**MVP 0 (Foundation) is complete.** The application has session authentication, owner-only Project CRUD with soft-delete and archive, ProjectWorkflow JSONB storage (auto-created per Project), an authenticated app shell with MYDS-aligned navigation, and a staged CI pipeline.
+
 The backend owns persistence, authorization, validation, and workflow/task business rules. The frontend owns page composition, MYDS-aligned UI, React Flow workflow editing, and client-side interaction state.
 
 ---
