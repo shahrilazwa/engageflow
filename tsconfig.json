@@ -17,7 +17,7 @@
         "skipLibCheck": true,
         "strict": true,
         "target": "ES2023",
-        "types": ["vite/client", "node"]
+        "types": ["vite/client"]
     },
     "include": [
         "resources/js/**/*.d.ts",
