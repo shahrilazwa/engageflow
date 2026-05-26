@@ -36,12 +36,12 @@ export default function Login() {
                 <GovMasthead />
 
                 <header className="border-b border-gray-200 bg-white">
-                    <div className="mx-auto flex min-h-16 max-w-6xl items-center px-4 py-3 sm:px-6 lg:px-8">
+                    <div className="mx-auto flex min-h-16 max-w-7xl items-center px-4 py-3 sm:px-6 lg:px-8">
                         <AppBrand compact />
                     </div>
                 </header>
 
-                <main className="mx-auto flex w-full max-w-6xl justify-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+                <main className="mx-auto flex w-full max-w-7xl justify-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
                     <section className="flex w-full justify-center">
                         <AuthCard>
                             <div className="mb-6">
