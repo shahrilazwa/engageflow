@@ -1,8 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Button } from '@govtechmy/myds-react/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faFolderOpen, faHouse, faRightFromBracket, faTableColumns, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { faBars, faChevronDown, faFolderOpen, faHouse, faRightFromBracket, faTableColumns, faUser, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useState, useRef, useEffect, type FormEvent, type ReactNode } from 'react';
 import AppBrand from '@/Components/AppBrand';
 
 type AuthUser = {
@@ -36,32 +35,138 @@ type NavigationItem = {
     icon: typeof faHouse;
 };
 
-function navigationItemClass(active: boolean, disabled?: boolean): string {
-    const baseClass = 'inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium transition';
-
-    if (disabled) {
-        return `${baseClass} cursor-not-allowed text-gray-400`;
+/** Get user initials from name (max 2 characters). */
+function getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-
-    if (active) {
-        return `${baseClass} bg-blue-50 text-blue-700`;
-    }
-
-    return `${baseClass} text-gray-600 hover:bg-gray-100 hover:text-gray-950`;
+    return name.slice(0, 2).toUpperCase();
 }
 
-function mobileNavigationItemClass(active: boolean, disabled?: boolean): string {
+/** Desktop nav item with MYDS-style active underline indicator. */
+function DesktopNavItem({ item }: { item: NavigationItem }) {
+    const baseClass = 'relative inline-flex h-full items-center gap-1.5 px-3 text-sm font-medium transition';
+    const activeIndicator = 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-blue-600';
+
+    let className: string;
+    if (item.disabled) {
+        className = `${baseClass} cursor-not-allowed text-gray-400`;
+    } else if (item.active) {
+        className = `${baseClass} text-gray-950 ${activeIndicator}`;
+    } else {
+        className = `${baseClass} text-gray-600 hover:text-gray-950`;
+    }
+
+    const content = <span>{item.label}</span>;
+
+    if (item.disabled || !item.href) {
+        return (
+            <span className={className} aria-disabled="true">
+                {content}
+            </span>
+        );
+    }
+
+    return (
+        <Link href={item.href} className={className}>
+            {content}
+        </Link>
+    );
+}
+
+/** Mobile nav item. */
+function MobileNavItem({ item, onClick }: { item: NavigationItem; onClick: () => void }) {
     const baseClass = 'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition';
 
-    if (disabled) {
-        return `${baseClass} cursor-not-allowed text-gray-400`;
+    let className: string;
+    if (item.disabled) {
+        className = `${baseClass} cursor-not-allowed text-gray-400`;
+    } else if (item.active) {
+        className = `${baseClass} bg-blue-50 text-blue-700`;
+    } else {
+        className = `${baseClass} text-gray-700 hover:bg-gray-100 hover:text-gray-950`;
     }
 
-    if (active) {
-        return `${baseClass} bg-blue-50 text-blue-700`;
+    const content = (
+        <>
+            <FontAwesomeIcon icon={item.icon} className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{item.label}</span>
+        </>
+    );
+
+    if (item.disabled || !item.href) {
+        return (
+            <span className={className} aria-disabled="true">
+                {content}
+            </span>
+        );
     }
 
-    return `${baseClass} text-gray-700 hover:bg-gray-100 hover:text-gray-950`;
+    return (
+        <Link href={item.href} className={className} onClick={onClick}>
+            {content}
+        </Link>
+    );
+}
+
+/** User initials dropdown (MYDS-style avatar circle with dropdown). */
+function UserDropdown({ user, onLogout }: { user: AuthUser; onLogout: (e: FormEvent<HTMLFormElement>) => void }) {
+    const [open, setOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside.
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        }
+        if (open) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [open]);
+
+    const initials = getInitials(user.name);
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 py-1 pl-1 pr-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
+                aria-expanded={open}
+                aria-haspopup="true"
+                aria-label="Menu pengguna"
+            >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+                    {initials}
+                </span>
+                <FontAwesomeIcon icon={faChevronDown} className="h-2.5 w-2.5 text-gray-500" aria-hidden="true" />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                        <p className="truncate text-sm font-medium text-gray-950">{user.name}</p>
+                        <p className="truncate text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <div className="px-1 py-1">
+                        <form onSubmit={(e) => { onLogout(e); setOpen(false); }}>
+                            <button
+                                type="submit"
+                                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-100 hover:text-gray-950"
+                            >
+                                <FontAwesomeIcon icon={faRightFromBracket} className="h-3.5 w-3.5" aria-hidden="true" />
+                                <span>Keluar</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default function AuthenticatedLayout({ children, title, selectedProject = null }: AuthenticatedLayoutProps) {
@@ -98,59 +203,29 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
         router.post('/logout');
     }
 
-    function renderNavigationItem(item: NavigationItem, mobile = false) {
-        const className = mobile ? mobileNavigationItemClass(item.active, item.disabled) : navigationItemClass(item.active, item.disabled);
-        const content = (
-            <>
-                <FontAwesomeIcon icon={item.icon} className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>{item.label}</span>
-            </>
-        );
-
-        if (item.disabled || !item.href) {
-            return (
-                <span key={item.label} className={className} aria-disabled="true">
-                    {content}
-                </span>
-            );
-        }
-
-        return (
-            <Link key={item.label} href={item.href} className={className} onClick={() => setMobileMenuOpen(false)}>
-                {content}
-            </Link>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-gray-50 text-gray-950">
+            {/* Header — MYDS navbar pattern */}
             <header className="border-b border-gray-200 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex min-h-16 items-center justify-between gap-4">
-                        <div className="flex min-w-0 items-center gap-6">
+                    <div className="flex h-16 items-center justify-between gap-4">
+                        {/* Left: brand + desktop navigation */}
+                        <div className="flex h-full min-w-0 items-center gap-6">
                             <AppBrand compact />
 
-                            <nav className="app-shell-desktop-nav items-center gap-1" aria-label="Primary navigation">
-                                {navigationItems.map((item) => renderNavigationItem(item))}
+                            <nav className="app-shell-desktop-nav h-full items-center gap-0.5" aria-label="Primary navigation">
+                                {navigationItems.map((item) => (
+                                    <DesktopNavItem key={item.label} item={item} />
+                                ))}
                             </nav>
                         </div>
 
-                        <div className="app-shell-desktop-actions min-w-0 items-center gap-4">
-                            {user && (
-                                <div className="min-w-0 text-right">
-                                    <p className="truncate text-sm font-medium leading-5 text-gray-950">{user.name}</p>
-                                    <p className="truncate text-xs leading-5 text-gray-500">{user.email}</p>
-                                </div>
-                            )}
-
-                            <form onSubmit={handleLogout}>
-                                <Button type="submit" variant="default-ghost" size="small">
-                                    <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" aria-hidden="true" />
-                                    <span>Keluar</span>
-                                </Button>
-                            </form>
+                        {/* Right: user dropdown (desktop) */}
+                        <div className="app-shell-desktop-actions items-center gap-3">
+                            {user && <UserDropdown user={user} onLogout={handleLogout} />}
                         </div>
 
+                        {/* Mobile hamburger toggle */}
                         <button
                             type="button"
                             className="app-shell-mobile-toggle h-10 w-10 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition hover:bg-gray-100 hover:text-gray-950"
@@ -164,11 +239,14 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
                     </div>
                 </div>
 
+                {/* Mobile menu panel */}
                 {mobileMenuOpen && (
                     <div id="mobile-navigation" className="app-shell-mobile-panel border-t border-gray-200 bg-white">
                         <div className="mx-auto max-w-7xl space-y-3 px-4 py-4 sm:px-6">
                             <nav className="space-y-1" aria-label="Mobile navigation">
-                                {navigationItems.map((item) => renderNavigationItem(item, true))}
+                                {navigationItems.map((item) => (
+                                    <MobileNavItem key={item.label} item={item} onClick={() => setMobileMenuOpen(false)} />
+                                ))}
                             </nav>
 
                             <div className="border-t border-gray-200 pt-3">
@@ -180,10 +258,13 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
                                 )}
 
                                 <form onSubmit={handleLogout}>
-                                    <Button type="submit" variant="default-outline" size="small">
+                                    <button
+                                        type="submit"
+                                        className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-gray-950"
+                                    >
                                         <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" aria-hidden="true" />
                                         <span>Keluar</span>
-                                    </Button>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -191,6 +272,7 @@ export default function AuthenticatedLayout({ children, title, selectedProject =
                 )}
             </header>
 
+            {/* Main content */}
             <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 {title && (
                     <div className="mb-5">
