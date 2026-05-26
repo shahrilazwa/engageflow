@@ -79,9 +79,13 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 4. THE Tracker SHALL allow a User to view Projects they own.
 5. THE Tracker SHALL prevent a User from viewing Projects they do not own, unless future Project membership grants access.
 6. THE Tracker SHALL allow the Project_Owner to update the Project name and description.
-7. THE Tracker SHALL create or make available one Visual_Workflow_Definition for each Project.
-8. THE Tracker SHALL scope all Project data, including Visual_Workflow_Definition, Tasks, Task_Workflow_Steps, Task_Deliverables, Follow_Up_Actions, Document_Links, dashboard data, and Audit_Entries, to the selected Project.
-9. THE Tracker SHALL NOT require a user profile organisation before creating a Project.
+7. THE Tracker SHALL allow the Project_Owner to archive a Project by setting its status to Archived.
+8. THE Tracker SHALL allow the Project_Owner to reactivate an Archived Project.
+9. THE Tracker SHALL display Archived Projects separately from active Projects or allow filtering by status.
+10. THE Tracker SHALL allow the Project_Owner to soft-delete a Project. Soft-deleted Projects are hidden from normal views but can be restored.
+11. THE Tracker SHALL create or make available one Visual_Workflow_Definition for each Project.
+12. THE Tracker SHALL scope all Project data, including Visual_Workflow_Definition, Tasks, Task_Workflow_Steps, Task_Deliverables, Follow_Up_Actions, Document_Links, dashboard data, and Audit_Entries, to the selected Project.
+13. THE Tracker SHALL NOT require a user profile organisation before creating a Project.
 
 ---
 
@@ -126,7 +130,8 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 6. THE Visual_Workflow_Definition MAY include viewport/layout metadata such as x-position, y-position, and zoom.
 7. WHEN the User reopens the Visual_Workflow_Builder, THE Tracker SHALL reload saved nodes, edges, positions, and viewport/layout metadata.
 8. THE Tracker SHALL validate the workflow definition server-side before saving.
-9. THE Tracker SHALL reject workflow definitions with missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, or invalid node order.
+9. THE Tracker SHALL increment the workflow definition version number on each successful save.
+10. THE Tracker SHALL reject workflow definitions with missing node IDs, duplicate node IDs, missing labels, invalid edges, missing positions, missing mandatory nodes, or invalid node order.
 10. THE Tracker SHALL use JSONB for the workflow definition so the model can later support richer workflow graph features.
 11. THE Tracker SHALL NOT implement branching, conditional execution, runtime actions, connectors, webhooks, hooks, or automation in v1.
 12. THE Tracker SHALL preserve existing Task_Workflow_Step snapshots when the Project workflow layout is changed after Tasks exist.
@@ -165,7 +170,8 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 5. IF the User only knows the target month, THE Tracker SHALL accept a month selection and use the last day of that month as the Target_Completion date.
 6. THE Tracker SHALL display the Target_Completion date alongside Task progress.
 7. THE Tracker SHALL NOT require a Task to be associated with any user profile organisation.
-8. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Tasks.
+8. THE Tracker SHALL allow a Project_User to soft-delete a Task. Soft-deleted Tasks are hidden from normal views but can be restored.
+9. THE Tracker SHALL prevent Users who cannot access the parent Project from accessing Tasks.
 
 ---
 
@@ -199,7 +205,8 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 4. THE Tracker SHALL support these Deliverable_Types in v1: Document, Slide, Spreadsheet, Design, Repository, Link, Other.
 5. THE Tracker SHALL support these Deliverable_Statuses in v1: Pending, In_Progress, Completed, Not_Required.
 6. THE Tracker SHALL allow updating Task_Deliverable details and status.
-7. THE Tracker SHALL treat Task_Deliverables as expected outputs, not merely generic document links.
+7. THE Tracker SHALL allow a Project_User to soft-delete a Task_Deliverable.
+8. THE Tracker SHALL treat Task_Deliverables as expected outputs, not merely generic document links.
 8. THE Tracker SHALL allow a Task_Deliverable to have one or more Document_Links attached.
 9. WHEN the current date exceeds a Task_Deliverable due date and its status is Pending or In_Progress, THE Tracker SHALL flag the Task_Deliverable as overdue.
 10. THE Tracker SHALL show Deliverable status on the Task detail screen.
@@ -237,7 +244,8 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 1. THE Tracker SHALL allow creating a Follow_Up_Action associated with a Task inside the selected Project.
 2. THE Tracker SHALL record at minimum a title, due date, status, and remarks for each Follow_Up_Action.
 3. THE Tracker SHALL support these Follow_Up_Action statuses: Open, In_Progress, Done, Cancelled.
-4. THE Tracker SHALL display pending Follow_Up_Actions where status is Open or In_Progress.
+4. THE Tracker SHALL allow a Project_User to soft-delete a Follow_Up_Action.
+5. THE Tracker SHALL display pending Follow_Up_Actions where status is Open or In_Progress.
 5. WHEN the current date exceeds the due date of a Follow_Up_Action and its status is not Done or Cancelled, THE Tracker SHALL flag it as overdue.
 6. THE Project_Dashboard SHALL display overdue Follow_Up_Actions prominently for the selected Project.
 7. THE Tracker SHALL record Follow_Up_Action status changes in Audit_Entries.
@@ -405,6 +413,10 @@ The primary v1 use case can still be GovTech libat urus / MyGOV onboarding work,
 17. **Dashboard is Project-scoped**: No cross-project dashboard in v1.
 18. **Delayed and overdue status can be computed on read**: No queue or background job is required for v1 delayed/overdue calculations.
 19. **Deliverables can be overdue**: A Task_Deliverable is overdue when its due date has passed and its status is Pending or In_Progress.
+20. **Soft-delete for Projects, Tasks, Deliverables, and Follow-Ups**: V1 supports soft-delete (hidden from normal views, restorable). Hard-delete is not exposed in v1 UI.
+21. **Project archive status**: Projects can be archived and reactivated. Archived Projects are hidden from the default active list.
+22. **Workflow version tracking**: The workflow definition version is incremented on each successful save for future audit and rollback capability.
+23. **No global roles in v1**: The old engagement-tracker role model (Admin, Lead, Member) is removed. V1 access is based on Project ownership. Future collaboration uses Project-scoped membership, not global roles.
 
 ---
 
