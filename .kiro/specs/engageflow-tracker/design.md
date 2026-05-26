@@ -452,9 +452,11 @@ Fields:
 
 Rules:
 
-- No global role is required for v1.
+- No global role is required for v1. The old engagement-tracker role model (Admin, Lead, Member) is removed.
+- V1 access is based on Project ownership.
 - Laravel session auth is used in v1.
 - Future Keycloak/OIDC can map external identities to local User records.
+- Future collaboration uses Project-scoped membership roles, not global application roles.
 
 ### 7.3 Project
 
@@ -464,6 +466,8 @@ Fields:
 - `owner_user_id`
 - `name`
 - `description` nullable
+- `status` (active | archived)
+- `deleted_at` nullable (soft-delete)
 - timestamps
 
 Rules:
@@ -472,6 +476,8 @@ Rules:
 - In v1, only the owner can access the Project.
 - All child data must be scoped through Project ownership.
 - Each Project has one ProjectWorkflow.
+- A Project can be archived (hidden from default list) and reactivated.
+- A Project can be soft-deleted (hidden from all views, restorable).
 
 ### 7.4 ProjectWorkflow
 
@@ -562,6 +568,7 @@ Fields:
 - `title`
 - `description` nullable
 - `target_completion_date` nullable
+- `deleted_at` nullable (soft-delete)
 - timestamps
 
 Rules:
@@ -569,6 +576,7 @@ Rules:
 - A Task belongs to one Project.
 - A Task receives relational workflow progress rows copied from all ProjectWorkflow definition nodes at creation time, including Mandatory and Optional nodes.
 - A Task can have zero or more Task Deliverables.
+- A Task can be soft-deleted (hidden from normal views, restorable).
 - Delayed status is computed on read.
 
 ### 7.8 TaskWorkflowStep
