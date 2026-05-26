@@ -156,17 +156,21 @@ Approval output: User can log in, create/select/update Projects, and cannot acce
   - MVP slice: MVP 0 Foundation
   - Labels: feature, backend
   - Depends on: Task 4
-  - Description: Create Project persistence and owner-only authorization. Project access is owner-only in v1, with future membership left as an extension point.
+  - Description: Create Project persistence and owner-only authorization. Project access is owner-only in v1, with future membership left as an extension point. Also clean up legacy role constants from User.php that are no longer needed.
   - Linked requirement/design: Requirement 2; Requirement 16; Requirement 17; Design 7.3; Design 9
   - Acceptance checklist:
-    - [ ] `projects` table has `owner_user_id`, `name`, `description`, and timestamps
+    - [ ] `projects` table has `owner_user_id`, `name`, `description`, `status` (active/archived), and timestamps with `deleted_at` for soft-delete
     - [ ] `Project` belongs to owner `User`
     - [ ] `User` has owned Projects relationship
     - [ ] `ProjectPolicy` allows owner access
     - [ ] `ProjectPolicy` denies non-owner access
     - [ ] Inaccessible Project records prefer 404 where resource discovery is a concern
     - [ ] No Spatie Permission package is required
-  - Test expectation: Feature tests for owner access, non-owner denial, and project scoping.
+    - [ ] Remove `ROLE_ADMIN`, `ROLE_ENGAGEMENT_LEAD`, `ROLE_ENGAGEMENT_OFFICER`, and `ROLES` constants from `User.php` — v1 uses owner-only Project access, not global roles
+    - [ ] Remove the `role` column migration if safe, or create a new migration to drop the `role` column
+    - [ ] Update `UserFactory` to remove `role` field
+    - [ ] Update any existing tests that reference old role values
+  - Test expectation: Feature tests for owner access, non-owner denial, project scoping, and soft-delete/restore.
   - UI/design review checkpoint: Not required; this task has no page deliverable.
 
 ---
